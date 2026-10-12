@@ -1,6 +1,34 @@
+<table style="margin: auto; background-color: white;">
+  <tr>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1lgflViz1uefcvVW1iI57haB4M1bKsZtp' alt="FutureLab" width="200" />
+    </td>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1R6PphT9jmd2vikODFPf6cW54QtZ29o2a' alt="Flautim" width="200" />
+    </td>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1lgflViz1uefcvVW1iI57haB4M1bKsZtp' alt="FutureLab" width="200" />
+    </td>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1R6PphT9jmd2vikODFPf6cW54QtZ29o2a' alt="Flautim" width="200" />
+    </td>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1lgflViz1uefcvVW1iI57haB4M1bKsZtp' alt="FutureLab" width="200" />
+    </td>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1R6PphT9jmd2vikODFPf6cW54QtZ29o2a' alt="Flautim" width="200" />
+    </td>
+    <td style="background-color: white;">
+      <img src='https://drive.google.com/uc?export=view&id=1lgflViz1uefcvVW1iI57haB4M1bKsZtp' alt="FutureLab" width="200" />
+    </td>
+  </tr>
+</table>
+
 # RetinaNet para detecção de bacilos de Koch
 
-Experimentos de hiperparâmetros com o RetinaNet R50-FPN v2 para detectar bacilos da tuberculose em lâminas coradas por Ziehl-Neelsen. O objetivo é superar o RetinaNet da tese de Thales Carvalho no mesmo protocolo de avaliação, e entender por que cada mudança ajuda ou atrapalha.
+Experimentos de hiperparâmetros com o RetinaNet R50-FPN v2 para detectar bacilos da tuberculose em lâminas coradas por Ziehl-Neelsen, executados na **[Plataforma Flautim](http://flautim.futurelab.dcc.ufmg.br/)** do FutureLab (DCC/UFMG). O objetivo é superar o RetinaNet da tese de Thales Carvalho no mesmo protocolo de avaliação, e entender por que cada mudança ajuda ou atrapalha.
+
+## 🎯 Objetivo
 
 O ponto de partida foi a tabela da tese (`resultados-thales-todos-modelos.md`). Na média dos quatro datasets dela, o RetinaNet chega a:
 
@@ -8,7 +36,11 @@ O ponto de partida foi a tabela da tese (`resultados-thales-todos-modelos.md`). 
 |---|---|---|---|
 | 0,9339 | 0,4741 | 0,6244 | 0,4533 |
 
-## Arquitetura
+**Atalhos:** [🧭 Painel de diagnóstico](https://bernardozschaber.me/retinanet/retinanet-visualizacao/retinanet-visualizacao.html) · [🏆 Resultados](#-resultados-até-agora) · [🕒 Linha do tempo](#-linha-do-tempo) · [📚 Tutoriais da Flautim](#-tutoriais-da-flautim)
+
+---
+
+## 🏗️ Arquitetura
 
 O detector existe uma vez só, em `retinanet-base/`, e cada experimento é só um `run.py` que monta as três classes da base com outros hiperparâmetros. A separação vem da plataforma Flautim, que executa os experimentos: ela copia os arquivos para uma pasta só, sem subpastas, e roda `python3 run.py` dali. Por isso os imports são planos (`import RetinaDataset`), o ponto de entrada sempre se chama `run.py`, e um experimento novo nunca copia o detector.
 
@@ -25,7 +57,15 @@ retinanet-visualizacao/         painel gerado a partir dos logs, imagens do READ
 resultados-thales-todos-modelos.md   tabelas da tese usadas como referência
 ```
 
-### Diagrama de classes
+### 🧩 Como o projeto se encaixa na Flautim
+
+Todo projeto Flautim estende a interface de programação da plataforma, a `flautim_api`. A figura, dos [tutoriais da Flautim](https://github.com/FutureLab-DCC/flautim_tutoriais), mostra o esquema. Aqui ele vira: `RetinaDataset` estende `Dataset`, `RetinaModel` estende `Model`, `RetinaExperiment` estende o `Experiment` centralizado, e o `run.py` de cada experimento usa o `common` para iniciar a plataforma e registrar o log.
+
+<div align="center">
+  <img src='https://drive.google.com/uc?export=view&id=1QOI4jWrwS979xhW_wlGzkPa2bMA-giuc' alt="Interface de programação da plataforma Flautim" width="800" />
+</div>
+
+### 📐 Diagrama de classes
 
 As três classes da base estendem as classes da Flautim. Os experimentos que precisam de algo a mais (enviar métricas ao W&B, escolher o checkpoint pelo critério da tese) estendem o `RetinaExperiment` dentro do próprio `run.py`, sem tocar na base.
 
@@ -126,7 +166,7 @@ classDiagram
     RetinaExperiment ..> Metricas : usa
 ```
 
-### Diagrama de sequência (um experimento na Flautim)
+### 🔄 Diagrama de sequência (um experimento na Flautim)
 
 ```mermaid
 sequenceDiagram
@@ -160,7 +200,7 @@ sequenceDiagram
     Pesquisador->>Pesquisador: cola o log completo em resultados-*.md
 ```
 
-### Diagrama de componentes
+### 🧱 Diagrama de componentes
 
 ```mermaid
 flowchart LR
@@ -178,7 +218,9 @@ flowchart LR
     Treino -. opcional .-> WandB[(Weights & Biases)]
 ```
 
-## O problema e a estratégia
+---
+
+## 🔬 O problema e a estratégia
 
 As 200 lâminas do `Annotation.csv` têm até 2560 × 2557 px e 3145 caixas anotadas (2941 bacilos e 204 aglomerados, tratados como uma classe só). O bacilo mediano tem ~72 px de lado. Encolher a lâmina inteira para caber na rede deixaria os bacilos com poucos pixels, então o `RetinaDataset` faz o contrário:
 
@@ -188,7 +230,9 @@ As 200 lâminas do `Annotation.csv` têm até 2560 × 2557 px e 3145 caixas anot
 
 O split é por lâmina, com semente fixa: 139 de treino, 20 de validação e 40 de teste (614 bacilos). Uma das 200 imagens é ilegível e fica de fora.
 
-## Protocolo de avaliação
+---
+
+## 📏 Protocolo de avaliação
 
 Para os números serem comparáveis com a tese, o `RetinaExperiment` reproduz o notebook do Thales:
 
@@ -198,7 +242,9 @@ Para os números serem comparáveis com a tese, o `RetinaExperiment` reproduz o 
 
 A comparação com a tese é sempre no limiar 0,5. O limiar escolhido na validação dá números melhores, mas muda a régua. O log também traz AP_VOC e as métricas com IoU 0,5 (AP50, F1_IOU50), que a tese não reporta.
 
-## Rodar um experimento na Flautim
+---
+
+## 🚀 Rodar um experimento na Flautim
 
 Envie para a plataforma, juntos:
 
@@ -212,7 +258,9 @@ Não acrescente pacotes ao `requirements.txt` sem travar `numpy==1.26.4`. A imag
 
 Um treino de 30 épocas leva de 20 a 36 minutos numa Quadro RTX 6000 e usa menos de 5 GB de VRAM. As buscas com Optuna levam de 2 a 3 horas.
 
-## Criar um experimento novo
+---
+
+## 🧪 Criar um experimento novo
 
 1. Copie a pasta do experimento mais parecido com o que você quer testar e renomeie no padrão `retinanet-<variacaoEmCamelCase>`.
 2. Mude os valores padrão no `run.py` e diga no `.md` o que mudou e por quê.
@@ -221,7 +269,9 @@ Um treino de 30 épocas leva de 20 a 36 minutos numa Quadro RTX 6000 e usa menos
 
 Os experimentos com Optuna e com sementes ajustam a perda focal (`focal_alpha`, `focal_gamma`) e o matcher de âncoras (`fg_iou`) dentro do próprio `run.py`, sem tocar no `RetinaModel.py`. Copie essas funções junto se o seu experimento precisar delas.
 
-## Painel de diagnóstico
+---
+
+## 📊 Painel de diagnóstico
 
 O painel junta todos os experimentos numa página: **[abrir o painel](https://bernardozschaber.me/retinanet/retinanet-visualizacao/retinanet-visualizacao.html)**. Ele também abre direto do arquivo `retinanet-visualizacao/retinanet-visualizacao.html`, e funciona nos temas claro e escuro.
 
@@ -251,11 +301,13 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
 
 O painel traz ainda o custo em tempo de treino, a tabela completa, os hiperparâmetros de cada treino e a linha do tempo que está no fim deste README.
 
-### Atualizar o painel
+### 🔁 Atualizar o painel
 
 `retinanet-visualizacao/gerar_visualizacao.py` lê os logs e gera o painel, sem nenhum pacote além da biblioteca padrão do Python. O mesmo script reescreve a linha do tempo deste README. O visual fica em `modelo.html`: para mudar o painel, edite o modelo e gere de novo, porque o HTML gerado é sobrescrito a cada execução. As imagens acima saem de `capturar_imagens.py`, que precisa do Playwright com Chromium.
 
-## Resultados até agora
+---
+
+## 🏆 Resultados até agora
 
 No teste, limiar 0,5:
 
@@ -275,7 +327,9 @@ Os achados principais:
 
 Os dois próximos experimentos já estão prontos: `retinanet-wandbSementesFocalF1`, que confirma a 2ª busca com cinco sementes, e `retinanet-optunaSuperaTese`, que busca superar as quatro métricas da tese ao mesmo tempo, com folga.
 
-## Linha do tempo
+---
+
+## 🕒 Linha do tempo
 
 O que cada rodada ensinou, em ordem cronológica. Os horários de início e fim saem dos logs, e os números são os do teste no limiar 0,5. Este trecho é gerado por `gerar_visualizacao.py`; edite a lista `LINHA_DO_TEMPO` no script, não o texto abaixo.
 
@@ -324,3 +378,19 @@ O que cada rodada ensinou, em ordem cronológica. Os horários de início e fim 
   `9 de 14 experimentos já superam as 4 médias; os do Optuna falham só na precisão` \
   **Por que foi criado:** Otimizar só o F1 levou a busca a trocar precisão por sensibilidade até a precisão cair abaixo da tese. A busca seguinte exige as quatro métricas acima da tese com folga de 0,01 e só então maximiza o F1, explorando alpha entre 0,25 e 0,5, a faixa entre a precisão alta da 1ª rodada e a sensibilidade alta do Optuna.
 <!-- linha-do-tempo:fim -->
+
+---
+
+## 📚 Tutoriais da Flautim
+
+Este projeto segue a estrutura ensinada nos tutoriais oficiais da plataforma. Para aprender a montar um experimento do zero:
+
+- 📚 [Tutorial 1](https://github.com/FutureLab-DCC/flautim_tutoriais/blob/main/TUTORIAL_1.ipynb) - Notebook com exemplo de classificação usando o dataset IRIS.
+- 📚 [Tutorial 2](https://github.com/FutureLab-DCC/flautim_tutoriais/blob/main/TUTORIAL_2.ipynb) - Notebook com exemplo de regressão usando o dataset BOSTON.
+- 📚 [Tutorial 3](https://github.com/FutureLab-DCC/flautim_tutoriais/blob/main/TUTORIAL_3.ipynb) - Notebook com exemplo de classificação de imagens usando o dataset MNIST.
+- 📚 [Tutorial 4](https://github.com/FutureLab-DCC/flautim_tutoriais/blob/main/TUTORIAL_4.ipynb) - Notebook com exemplo de classificação de imagens usando o dataset FMNIST, com seleção de clientes em ambiente federado.
+- 🎥 [Tutorial em vídeo](https://drive.google.com/file/d/1eC0CnIzZ-pKLTM6M9QvOmdZlBghjyL9J/view?usp=drive_link) - Como rodar o experimento do Tutorial 1 na plataforma, passo a passo.
+
+## 📞 Fale com a Flautim
+
+Dúvidas sobre a plataforma ou interesse em acessá-la: 💬 flautim@dcc.ufmg.br
