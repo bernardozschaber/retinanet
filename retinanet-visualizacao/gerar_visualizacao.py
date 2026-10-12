@@ -1,6 +1,6 @@
 """Gera o painel de diagnostico dos experimentos RetinaNet (retinanet-visualizacao.html).
 
-Le os logs completos (resultados-*.md) de cada pasta em retinanet-experimentos/,
+Le os logs completos (log.md) de cada pasta em retinanet-experimentos/,
 sem dependencias alem da biblioteca padrao. Experimentos novos entram sozinhos:
 basta a pasta ter o log completo.
 
@@ -198,10 +198,10 @@ def linhas_plataforma(texto):
 
 
 def ler_experimento(pasta):
-    arquivos = list(pasta.glob("resultados-*.md"))
-    if not arquivos:
-        return None
-    texto = max(arquivos, key=lambda a: a.stat().st_size).read_text(errors="replace")
+    log_md = pasta / "log.md"
+    if not log_md.exists():
+        return None  # experimento ainda sem log (ex.: rodando na plataforma)
+    texto = log_md.read_text(errors="replace")
     eventos = sorted(linhas_plataforma(texto), key=lambda e: e[0])
 
     testes, epocas, tempos_treino, curvas = [], [], [], []
