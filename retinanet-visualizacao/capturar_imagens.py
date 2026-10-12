@@ -32,6 +32,7 @@ SECOES = [
     ("#faixas", "04-candlestick"),
     ("#matriz", "05-matriz-de-confusao"),
     ("#aprendizado", "06-curva-de-aprendizado"),
+    ("#curva-pr", "07-curva-pr-teste"),
 ]
 
 

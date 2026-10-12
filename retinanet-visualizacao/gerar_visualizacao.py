@@ -137,26 +137,34 @@ LINHA_DO_TEMPO = [
               "entre os 5 melhores, então o ótimo fica entre 0,5 e 0,6. Lote 8 apareceu em todos os 5 melhores. "
               "Com alpha 0,6 a calibração passou um pouco do ponto: o limiar ideal na validação foi 0,60 e a "
               "precisão caiu para 0,83."},
-    {"data": "11/10/2026", "hora": "22:00 (10/10)–00:11", "titulo": "Cinco sementes da melhor configuração",
+    {"data": "10/10/2026", "hora": "22:00–00:11 de 11/10", "titulo": "Cinco sementes da melhor configuração",
      "experimentos": ["wandbSementes"],
      "numeros": "F1 0,8553 ± 0,0091 · AP 0,8066 ± 0,0323 · P 0,8787 ± 0,0288 · R 0,8352 ± 0,0388",
      "licao": "A semente 42 repetiu exatamente o resultado da 1ª busca, prova de que o treino é reprodutível. Mas "
               "ela foi a melhor das cinco: o 0,8634 era otimista, e a média real é 0,855. O AP varia 3,5 vezes mais "
               "que o F1 entre sementes, então diferenças de AP abaixo de ~0,03 numa semente só são ruído. Mesmo "
               "assim, o F1 fica 0,18 acima do melhor dataset da tese, mais de seis desvios de distância."},
-    {"data": "11/10/2026", "hora": "", "titulo": "Confirmar a 2ª busca com sementes",
+    {"data": "11/10/2026", "hora": "22:54–00:56 de 12/10", "titulo": "Cinco sementes da 2ª busca",
      "experimentos": ["wandbSementesFocalF1"],
-     "numeros": "referência: wandbSementes, F1 0,8553 ± 0,0091",
-     "licao": "O ganho da 2ª busca sobre a 1ª (+0,004 de F1, +0,021 de AP) é menor que o desvio entre sementes. "
-              "Só a média de cinco sementes diz se alpha 0,6 com lote 8 é melhor de fato. A semente 42 deve repetir "
-              "F1 0,8673, o que confirma que a configuração foi aplicada."},
-    {"data": "11/10/2026", "hora": "", "titulo": "Superar as quatro médias ao mesmo tempo, com folga",
+     "numeros": "F1 0,8643 ± 0,0037 · AP 0,8414 ± 0,0229 · P 0,8459 ± 0,0172 · R 0,8844 ± 0,0256 · 24,5 min por semente",
+     "licao": "A semente 42 repetiu F1 0,8673, então a configuração foi aplicada como deveria. Desta vez o ganho é real: "
+              "+0,009 de F1 sobre o wandbSementes, com p = 0,032 num teste de permutação exato entre as 5 + 5 sementes, e "
+              "+0,049 de sensibilidade (p = 0,040). O AP subiu 0,035, mas sem significância (p = 0,087). O desvio do F1 caiu "
+              "para menos da metade (0,0037 contra 0,0091): alpha 0,6 com lote 8 é a configuração de maior F1 e a mais estável "
+              "do projeto. O preço continua sendo a precisão, 0,846, abaixo dos 0,934 da tese."},
+    {"data": "11/10/2026", "hora": "22:54–02:03 de 12/10", "titulo": "Superar as quatro médias ao mesmo tempo, com folga",
      "experimentos": ["optunaSuperaTese"],
-     "numeros": "9 de 14 experimentos já superam as 4 médias; os do Optuna falham só na precisão",
-     "licao": "Otimizar só o F1 levou a busca a trocar precisão por sensibilidade até a precisão cair abaixo da "
-              "tese. A busca seguinte exige as quatro métricas acima da tese com folga de 0,01 e só então maximiza "
-              "o F1, explorando alpha entre 0,25 e 0,5, a faixa entre a precisão alta da 1ª rodada e a "
-              "sensibilidade alta do Optuna."},
+     "numeros": "P 0,9629 ± 0,0067 · R 0,5261 ± 0,0388 · F1 0,6799 ± 0,0337 · AP 0,5176 ± 0,0382 · 3 de 3 sementes superam as 4",
+     "licao": "Objetivo cumprido: as três sementes e a média superam as quatro métricas da tese, com +0,029 de folga na "
+              "precisão. A busca voltou ao alpha 0,25 com lr ~0,011, praticamente o altoLearningRate da 1ª rodada: os três "
+              "trials que passaram a tese na validação usaram alpha 0,25 ou 0,35, e learning rate e weight decay foram os "
+              "hiperparâmetros mais importantes (0,41 e 0,29). Mas o F1 ficou em 0,68, abaixo dos 0,77 do altoLearningRate. "
+              "O motivo é a escolha do checkpoint: ela exigia precisão de pelo menos 0,944 na validação, onde a precisão sai "
+              "menor que no teste, e acabou ficando com épocas conservadoras, de sensibilidade baixa. As últimas épocas "
+              "tinham F1 maior na validação (0,69 a 0,75). A curva precisão × sensibilidade do teste aponta para o mesmo "
+              "lado: no limiar 0,45, as três sementes ainda superariam a tese em precisão e sensibilidade, com F1 de 0,73 "
+              "a 0,79. Como isso foi visto no teste, é uma pista e não um resultado. Superar a tese nas quatro métricas é "
+              "robusto; fazer isso com F1 alto pede uma folga menor na validação."},
 ]
 
 

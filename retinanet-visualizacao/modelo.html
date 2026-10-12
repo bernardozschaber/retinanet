@@ -509,7 +509,8 @@ function gCurvaPR(t) {
   if (!document.getElementById("g-curva-pr")) area.innerHTML = '<div class="figura"><div class="grafico" id="g-curva-pr" style="min-height:420px"></div></div>';
   const traces = [];
   for (const e of com) e.curvas.forEach((c, i) => {
-    const p = c.pontos.slice().sort((a, b) => a.sensibilidade - b.sensibilidade);
+    // Limiar alto sem nenhuma predição vira P = 0 e R = 0, um ponto que não é da curva.
+    const p = c.pontos.filter(q => q.tp + q.fp > 0).sort((a, b) => a.sensibilidade - b.sensibilidade);
     traces.push({ x: p.map(q => q.sensibilidade), y: p.map(q => q.precisao), mode: "lines", line: { color: t.fuc, width: 1.5 }, opacity: 0.8,
       customdata: p.map(q => [q.limiar, q.tp, q.fp, q.fn]),
       hovertemplate: `${e.nome} · semente ${i + 1}<br>limiar %{customdata[0]:.2f}<br>P %{y:.4f} · R %{x:.4f}<br>VP %{customdata[1]} · FP %{customdata[2]} · FN %{customdata[3]}<extra></extra>` });
@@ -520,7 +521,7 @@ function gCurvaPR(t) {
   traces.push({ x: tese.map(d => d.RECALL.media), y: tese.map(d => d.PRECISION.media), mode: "markers", marker: { color: t.met, size: 9, line: { color: t.bg, width: 2 } },
     text: Object.keys(DADOS.tese), hovertemplate: "Tese · %{text}<br>P %{y:.4f} · R %{x:.4f}<extra></extra>" });
   Plotly.react("g-curva-pr", traces, base(t, { height: 420,
-    xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0, 1] }), yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.5, 1.01] }),
+    xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0, 1], tickformat: ".1f" }), yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.5, 1.01], tickformat: ".1f" }),
     shapes: [{ type: "rect", x0: REF.RECALL, x1: 1, y0: REF.PRECISION, y1: 1.01, fillcolor: t.fucSoft, line: { width: 0 }, layer: "below" }] }), CONF);
 }
 
