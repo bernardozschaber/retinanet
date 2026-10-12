@@ -32,8 +32,8 @@
 #   Assim qualquer configuracao que supera as 4 vale mais do que qualquer
 #   uma que nao supera, e entre as que superam ganha a de maior F1.
 #
-# Usa os MESMOS RetinaDataset.py / RetinaModel.py / RetinaExperiment.py
-# do retinanet-base, sem alteracao.
+# Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
+# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao.
 # --------------------------------------------------------------
 import gc
 import json

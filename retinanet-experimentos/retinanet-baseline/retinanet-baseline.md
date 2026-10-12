@@ -1,4 +1,4 @@
-# retinanet-base
+# retinanet-baseline
 
 Informações sobre o experimento
 

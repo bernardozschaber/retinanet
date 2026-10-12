@@ -1,0 +1,31 @@
+# ------------------------------------------------------------------
+# PROPOSITALMENTE VAZIO (so comentarios).
+#
+# A imagem da Flautim (experiments-gpu:0.2, Python 3.12) ja traz tudo
+# o que este experimento usa, compilado contra a ABI do NumPy 1.x:
+#
+#   torch, torchvision, numpy 1.26.4, cv2, pycocotools 2.0+nv0.8.1,
+#   matplotlib 3.9.2, scipy, pandas, pyyaml, requests
+#
+# Qualquer pacote instalado aqui que puxe numpy>=2 desinstala o
+# numpy 1.26.4 da imagem e quebra TODOS eles de uma vez
+# ("numpy.core.multiarray failed to import" / "Failed to initialize
+# NumPy") — foi exatamente o que derrubou o run de 17/09/2026:
+# albumentations 2.0.8 arrastou opencv-python-headless 5.0.0.93, que
+# exige numpy>=2, e o pip trocou o numpy debaixo do torch.
+#
+# Pinar numpy<2 ate resolve o conflito, mas ainda reinstala o cv2 por
+# cima do da imagem. Por isso o codigo foi reescrito para NAO depender
+# de albumentations, gdown nem scikit-learn:
+#
+#   - transforms/augmentation: cv2 + numpy (TBDataset.py)
+#   - metricas binarias: implementadas a mao (TBExperiment.py)
+#   - dados: lidos de um caminho absoluto no pod, sem download
+#
+# Resultado: `pip3 install -r requirements.txt` nao instala nada e nao
+# ha como o ambiente da imagem ser corrompido.
+#
+# Se algum dia for preciso adicionar um pacote, adicione junto a linha
+#   numpy==1.26.4
+# para travar o resolvedor do pip.
+# ------------------------------------------------------------------

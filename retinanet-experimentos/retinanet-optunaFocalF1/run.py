@@ -16,8 +16,8 @@
 # --------------------------------------------------------------
 # Ponto de entrada do experimento na Flautim.
 #
-# Usa os MESMOS RetinaDataset.py / RetinaModel.py / RetinaExperiment.py
-# do retinanet-baseline, sem alteracao. Tudo o que e novo (busca, perda
+# Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
+# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao. Tudo o que e novo (busca, perda
 # focal configuravel, matcher configuravel) fica neste arquivo.
 #
 # Fluxo:

@@ -13,8 +13,8 @@
 #   - um run do W&B por semente, todos no mesmo grupo: a interface do
 #     W&B ja mostra a media e a faixa das curvas do grupo.
 #
-# Usa os MESMOS RetinaDataset.py / RetinaModel.py / RetinaExperiment.py
-# do retinanet-base, sem alteracao. Perda focal e matcher sao ajustados
+# Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
+# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao. Perda focal e matcher sao ajustados
 # aqui, do mesmo jeito que no retinanet-optuna.
 #
 # Sem chave do W&B (ou sem internet no pod) os runs ficam em modo

@@ -34,8 +34,8 @@
 # (semente 42, mesmas 40 laminas de teste), 30 epocas, limiar 0,5 e IoU 0,1.
 # Sementes 42-46, como os outros experimentos com sementes.
 #
-# Usa os MESMOS RetinaDataset.py / RetinaModel.py / RetinaExperiment.py
-# do retinanet-base, sem alteracao.
+# Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
+# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao.
 # --------------------------------------------------------------
 import gc
 import json

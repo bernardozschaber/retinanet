@@ -1,4 +1,4 @@
-# Experimento de hiperparametros: retinanet-base
+# Experimento de hiperparametros: retinanet-baseline
 # Configuracao base (sem alteracao)
 # --------------------------------------------------------------
 # Ponto de entrada do experimento na Flautim.
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         log_erro("fl.init() falhou — sem contexto nao ha log na plataforma")
         raise SystemExit(1)
 
-    log("rtn/run > experimento de hiperparametros: retinanet-base")
+    log("rtn/run > experimento de hiperparametros: retinanet-baseline")
     log(
         "rtn/run > flautim inicializado",
         details=(
