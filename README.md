@@ -8,27 +8,175 @@ O ponto de partida foi a tabela da tese (`resultados-thales-todos-modelos.md`). 
 |---|---|---|---|
 | 0,9339 | 0,4741 | 0,6244 | 0,4533 |
 
-## Como o projeto está organizado
+## Arquitetura
 
-O código do detector existe uma vez só, em `retinanet-base/`. Cada experimento é uma pasta em `retinanet-experimentos/` com apenas o que muda: um `run.py` com os hiperparâmetros, um `.md` que diz o que variou em relação à base e, depois de rodar, o log completo da plataforma em `resultados-*.md`.
-
-```
-retinanet-base/                 retinanet-experimentos/<nome>/
-  RetinaDataset.py  ─┐            run.py           (hiperparâmetros)
-  RetinaModel.py     ├─ enviados  requirements.txt (só quando precisa: optuna, wandb)
-  RetinaExperiment.py┘  juntos ─▶ <nome>.md        (o que mudou e por quê)
-                                  resultados-*.md  (log completo da Flautim)
-                                          │
-                                          ▼
-                        retinanet-visualizacao/gerar_visualizacao.py
-                                          │
-                                          ▼
-                        painel HTML com métricas, gráficos e linha do tempo
-```
-
-A separação existe por causa da plataforma Flautim, que executa os experimentos. Ela copia os arquivos de um experimento para uma pasta só, sem subpastas, e roda `python3 run.py` dali. Por isso os imports são planos (`import RetinaDataset`), o ponto de entrada sempre se chama `run.py`, e um experimento novo nunca precisa copiar o detector: basta um `run.py` diferente.
+O detector existe uma vez só, em `retinanet-base/`, e cada experimento é só um `run.py` que monta as três classes da base com outros hiperparâmetros. A separação vem da plataforma Flautim, que executa os experimentos: ela copia os arquivos para uma pasta só, sem subpastas, e roda `python3 run.py` dali. Por isso os imports são planos (`import RetinaDataset`), o ponto de entrada sempre se chama `run.py`, e um experimento novo nunca copia o detector.
 
 Os logs ficam no repositório de propósito. Eles são a fonte de verdade: o painel e os resultados deste README saem deles, com data e hora de cada treino.
+
+```
+retinanet-base/                 detector: dataset em ladrilhos, modelo e ciclo de treino/avaliação
+retinanet-experimentos/
+  retinanet-<variação>/         um experimento: run.py, o .md do que mudou e o log da Flautim
+                                  1ª rodada: baseline e 9 variações de um hiperparâmetro
+                                  optuna*: buscas automáticas; wandb*: treinos acompanhados no W&B
+                                  *Sementes: a mesma configuração com várias sementes (média ± desvio)
+retinanet-visualizacao/         painel gerado a partir dos logs, imagens do README e scripts
+resultados-thales-todos-modelos.md   tabelas da tese usadas como referência
+```
+
+### Diagrama de classes
+
+As três classes da base estendem as classes da Flautim. Os experimentos que precisam de algo a mais (enviar métricas ao W&B, escolher o checkpoint pelo critério da tese) estendem o `RetinaExperiment` dentro do próprio `run.py`, sem tocar na base.
+
+```mermaid
+classDiagram
+    direction TB
+    class FlautimDataset {
+        <<Flautim>>
+    }
+    class FlautimModel {
+        <<Flautim>>
+    }
+    class FlautimExperiment {
+        <<Flautim>>
+        +run(metrics)
+    }
+    class TorchDataset {
+        <<PyTorch>>
+    }
+    class RetinaDataset {
+        +batch_size
+        +tile_size
+        +escala
+        +particoes
+        +dataloader(validation, test)
+        +train()
+        +validation()
+        +test()
+        +manifest()
+    }
+    class RetinaTorchDataset {
+        +nomes
+        +tile_size
+        +crops_per_image
+        +treinando
+        +carregar(nome)
+        +ladrilhos(imagem)
+        +#95;#95;getitem#95;#95;(indice)
+    }
+    class CacheDeImagens {
+        +escala
+        +imagens
+        +ler(nome, caminho)
+    }
+    class RetinaModel {
+        +detector
+        +architecture
+        +tile_size
+        +TAMANHOS_ANCORA
+        +forward(images, targets)
+        +save()
+    }
+    class RetinaExperiment {
+        +epochs
+        +optimizer
+        +score_threshold
+        +eval_iou
+        +best_score
+        +model_path
+        +training_loop(data_loader)
+        +validation_loop(data_loader)
+        +detectar_imagem(particao, imagem)
+        +inferir_particao(particao, nome)
+        +metricas(registros, limiar)
+        +melhor_limiar(registros)
+        +evaluate_test_set()
+    }
+    class Metricas {
+        <<module>>
+        +casar_guloso(sobreposicoes, limiar_iou)
+        +prf_no_limiar(scores, acertos, total, limiar)
+        +ap_tese(scores, acertos, total, corte)
+        +ap_voc(scores, acertos, total)
+    }
+    class RetinaExperimentWandb {
+        +wandb_run
+        +training_loop(data_loader)
+        +validation_loop(data_loader)
+        +evaluate_test_set()
+    }
+    class RetinaExperimentTese {
+        +melhor_obj
+        +curva_pr
+        +validation_loop(data_loader)
+        +evaluate_test_set()
+    }
+
+    FlautimDataset <|-- RetinaDataset
+    TorchDataset <|-- RetinaTorchDataset
+    FlautimModel <|-- RetinaModel
+    FlautimExperiment <|-- RetinaExperiment
+    RetinaExperiment <|-- RetinaExperimentWandb : run.py dos experimentos wandb*
+    RetinaExperiment <|-- RetinaExperimentTese : run.py do optunaSuperaTese
+    RetinaDataset "1" *-- "3" RetinaTorchDataset : treino, validação, teste
+    RetinaTorchDataset "*" --> "1" CacheDeImagens : compartilham
+    RetinaExperiment --> RetinaModel
+    RetinaExperiment --> RetinaDataset
+    RetinaExperiment ..> Metricas : usa
+```
+
+### Diagrama de sequência (um experimento na Flautim)
+
+```mermaid
+sequenceDiagram
+    actor Pesquisador
+    participant Flautim
+    participant Run as run.py
+    participant Dataset as RetinaDataset
+    participant Modelo as RetinaModel
+    participant Exp as RetinaExperiment
+
+    Pesquisador->>Flautim: envia retinanet-base/*.py + run.py (+ requirements.txt)
+    Flautim->>Run: pip install -r requirements.txt, python3 run.py
+    Run->>Flautim: fl.init()
+    Run->>Dataset: constrói (Annotation.csv, escala para bacilo de ~40 px, cache em RAM, split 139/20/40)
+    opt experimentos optuna*
+        loop cada trial
+            Run->>Modelo: constrói com os hiperparâmetros do trial
+            Run->>Exp: training_loop() e inferir_particao(validação), época a época
+            Exp-->>Run: objetivo na validação (poda os trials ruins)
+        end
+    end
+    Run->>Modelo: constrói (pesos COCO, âncoras de 16 px, cabeça de 2 classes)
+    Run->>Exp: run()
+    loop cada época
+        Exp->>Dataset: recortes de 640 px com augmentation
+        Exp->>Exp: training_loop() (SGD, AMP, aquecimento + cosseno)
+        Exp->>Exp: validation_loop() (ladrilhos, métricas, checkpoint)
+    end
+    Run->>Exp: evaluate_test_set()
+    Exp-->>Flautim: métricas no limiar 0,5, no log (rtn/teste)
+    Pesquisador->>Pesquisador: cola o log completo em resultados-*.md
+```
+
+### Diagrama de componentes
+
+```mermaid
+flowchart LR
+    subgraph Flautim[Plataforma Flautim]
+        Vol[(Volume do dataset<br/>Annotation.csv + images/)] --> Treino[run.py + retinanet-base<br/>Quadro RTX 6000]
+    end
+    Treino -->|log completo| Logs[resultados-*.md<br/>retinanet-experimentos/]
+    Logs --> Gerador[gerar_visualizacao.py]
+    Modelo[modelo.html] --> Gerador
+    Gerador --> Painel[retinanet-visualizacao.html]
+    Gerador -->|linha do tempo| Readme[README.md]
+    Painel --> Captura[capturar_imagens.py<br/>Playwright]
+    Captura -->|imagens/| Readme
+    Painel --> Pages[GitHub Pages<br/>bernardozschaber.me/retinanet]
+    Treino -. opcional .-> WandB[(Weights & Biases)]
+```
 
 ## O problema e a estratégia
 
