@@ -33,7 +33,7 @@
 #   uma que nao supera, e entre as que superam ganha a de maior F1.
 #
 # Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
-# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao.
+# (retinanet-model/) e RetinaExperiment.py (retinanet-experiment/), sem alteracao.
 # --------------------------------------------------------------
 import gc
 import json

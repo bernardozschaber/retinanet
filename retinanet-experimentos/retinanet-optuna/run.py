@@ -4,7 +4,7 @@
 # Ponto de entrada do experimento na Flautim.
 #
 # Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
-# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao. Tudo o que e novo (busca, perda
+# (retinanet-model/) e RetinaExperiment.py (retinanet-experiment/), sem alteracao. Tudo o que e novo (busca, perda
 # focal configuravel, matcher configuravel) fica neste arquivo.
 #
 # Fluxo:

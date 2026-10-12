@@ -21,7 +21,7 @@
 # protocolo de avaliacao (limiar 0,5, IoU 0,1).
 #
 # Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
-# (retinanet-model/) e RetinaExperiment.py (copia nesta pasta), sem alteracao. Perda focal e matcher sao ajustados
+# (retinanet-model/) e RetinaExperiment.py (retinanet-experiment/), sem alteracao. Perda focal e matcher sao ajustados
 # aqui, do mesmo jeito que no retinanet-optuna.
 #
 # Sem chave do W&B (ou sem internet no pod) os runs ficam em modo
