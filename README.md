@@ -279,7 +279,7 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/01-resumo-escuro.png">
-  <img src="retinanet-visualizacao/imagens/01-resumo-claro.png" alt="Resumo do painel: 9 de 14 experimentos superam as quatro médias da tese">
+  <img src="retinanet-visualizacao/imagens/01-resumo-claro.png" alt="Resumo do painel: 10 de 16 experimentos superam as quatro médias da tese">
 </picture>
 
 **Folga sobre a tese.** Cada experimento contra cada uma das quatro métricas, como diferença para a média do RetinaNet da tese. É a resposta direta à pergunta do projeto: quem supera a tese, em quê e por quanto. A marca "4/4" indica quem supera as quatro ao mesmo tempo.
@@ -310,6 +310,13 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
   <img src="retinanet-visualizacao/imagens/05-matriz-de-confusao-claro.png" alt="Matriz de confusão da detecção para as cinco sementes">
 </picture>
 
+**Curva precisão × sensibilidade no teste.** A curva completa de cada semente do optunaSuperaTese, com o limiar indo de 0,05 a 0,95 e o ponto do limiar 0,5 marcado, ao lado dos pontos da tese. Mostra quanto de sensibilidade o modelo ganharia baixando o limiar, e onde ele deixaria de superar a tese em precisão.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/07-curva-pr-teste-escuro.png">
+  <img src="retinanet-visualizacao/imagens/07-curva-pr-teste-claro.png" alt="Curva precisão × sensibilidade no teste para as sementes do optunaSuperaTese">
+</picture>
+
 **Curva de aprendizado.** A métrica da validação época a época, com a faixa entre a melhor e a pior semente. Mostra quando o treino estabiliza e quanto as sementes divergem.
 
 <picture>
@@ -327,23 +334,27 @@ O painel traz ainda o custo em tempo de treino, a tabela completa, os hiperparâ
 
 ## 🏆 Resultados até agora
 
-No teste, limiar 0,5:
+No teste, limiar 0,5. As linhas com ± são médias de várias sementes, que é a forma justa de comparar com a tese.
 
-| Execução | Precisão | Sensibilidade | F-measure | AP |
-|---|---|---|---|---|
-| Tese, RetinaNet (média dos 4 datasets) | 0,9339 | 0,4741 | 0,6244 | 0,4533 |
-| Baseline | 0,9537 | 0,6042 | 0,7398 | 0,5963 |
-| altoLearningRate (1ª rodada) | 0,9355 | 0,6612 | 0,7748 | 0,6431 |
-| optunaFocalF1 (1 semente) | 0,8281 | 0,9104 | 0,8673 | 0,8593 |
-| wandbSementes (média de 5 sementes) | 0,8787 ± 0,0288 | 0,8352 ± 0,0388 | 0,8553 ± 0,0091 | 0,8066 ± 0,0323 |
+| Execução | Precisão | Sensibilidade | F-measure | AP | Supera as 4 médias? |
+|---|---|---|---|---|---|
+| Tese, RetinaNet (média dos 4 datasets) | 0,9339 | 0,4741 | 0,6244 | 0,4533 | referência |
+| Baseline | 0,9537 | 0,6042 | 0,7398 | 0,5963 | sim |
+| altoLearningRate (1ª rodada) | 0,9355 | 0,6612 | 0,7748 | 0,6431 | sim, por +0,0016 na precisão |
+| **optunaSuperaTese** (3 sementes) | **0,9629 ± 0,0067** | 0,5261 ± 0,0388 | 0,6799 ± 0,0337 | 0,5176 ± 0,0382 | **sim, nas 3 sementes** |
+| wandbSementes (5 sementes) | 0,8787 ± 0,0288 | 0,8352 ± 0,0388 | 0,8553 ± 0,0091 | 0,8066 ± 0,0323 | não (precisão) |
+| **wandbSementesFocalF1** (5 sementes) | 0,8459 ± 0,0172 | **0,8844 ± 0,0256** | **0,8643 ± 0,0037** | **0,8414 ± 0,0229** | não (precisão) |
 
 Os achados principais:
 
-- **O baseline já supera a média da tese nas quatro métricas.** Dos 14 experimentos rodados até 11/10/2026, 9 superam as quatro ao mesmo tempo, contando o baseline.
-- **O alpha da perda focal é a alavanca de calibração.** Com 0,25 o modelo marca pouco e quase sempre certo; com 0,5 a 0,6 a sensibilidade chega a 0,87–0,91, mas a precisão cai abaixo da tese. O gamma pesa sete vezes menos que o alpha.
-- **Uma semente só engana.** A semente que deu F1 0,8634 foi a melhor de cinco; a média real é 0,855. Diferenças de AP abaixo de ~0,03 entre execuções de uma semente são ruído.
+- **Superar a tese nas quatro métricas ao mesmo tempo é robusto.** O optunaSuperaTese faz isso nas três sementes e na média, com +0,029 de folga na precisão, a métrica que sempre foi o limite. Dos 16 experimentos rodados até 12/10/2026, 10 superam as quatro médias.
+- **Existe uma troca entre precisão e F1, e o alpha da perda focal escolhe o ponto.** Com alpha 0,25 o modelo marca pouco e quase sempre certo, e supera a tese em tudo; com alpha 0,5 a 0,6 o F1 sobe para ~0,86, mas a precisão cai abaixo da tese. O gamma pesa sete vezes menos que o alpha.
+- **O maior F1 do projeto é estável e estatisticamente confirmado.** O wandbSementesFocalF1 tem F1 0,8643 ± 0,0037, acima do wandbSementes com p = 0,032 num teste de permutação exato entre as 5 + 5 sementes.
+- **Uma semente só engana.** Na primeira repetição com sementes, o resultado de uma execução isolada (F1 0,8634) era o melhor de cinco, e a média real foi 0,855. Diferenças de AP abaixo de ~0,03 entre execuções de uma semente são ruído.
+- **A escolha do checkpoint importa tanto quanto os hiperparâmetros.** O optunaSuperaTese tem quase a mesma configuração do altoLearningRate, mas escolheu o checkpoint exigindo precisão de pelo menos 0,944 na validação. Isso garantiu a precisão no teste à custa de sensibilidade: o F1 ficou em 0,68 (média de três sementes), contra 0,77 do altoLearningRate (uma semente). A curva precisão × sensibilidade do teste reforça isso: no limiar 0,45, as três sementes ainda passariam a tese em precisão e sensibilidade, com F1 de 0,73 a 0,79. Por ter sido observado no teste, isso serve de pista para o próximo experimento, não de resultado.
 
-Os dois próximos experimentos já estão prontos: `retinanet-wandbSementesFocalF1`, que confirma a 2ª busca com cinco sementes, e `retinanet-optunaSuperaTese`, que busca superar as quatro métricas da tese ao mesmo tempo, com folga.
+O próximo passo natural é juntar as duas coisas: a configuração de alpha 0,25 do optunaSuperaTese com uma folga menor (ou nenhuma) na escolha do checkpoint, para tentar superar a tese nas quatro métricas com F1 perto de 0,77.
+
 
 ---
 
@@ -381,20 +392,20 @@ O que cada rodada ensinou, em ordem cronológica. Os horários de início e fim 
   `P 0,8281 · R 0,9104 · F1 0,8673 · AP 0,8593 · busca 125 min, 12 de 20 trials podados` \
   **O que ensinou:** O alpha virou o hiperparâmetro mais importante da busca (importância 0,33). O gamma pesou sete vezes menos (0,05): 1,5 e 2,0 deram resultados parecidos, e o vencedor usou 1,5, que suprime menos os exemplos fáceis e, junto com alpha 0,6, tende a empurrar os scores para cima. O alpha 0,75 não apareceu entre os 5 melhores, então o ótimo fica entre 0,5 e 0,6. Lote 8 apareceu em todos os 5 melhores. Com alpha 0,6 a calibração passou um pouco do ponto: o limiar ideal na validação foi 0,60 e a precisão caiu para 0,83.
 
-- **11/10/2026 (22:00 (10/10)–00:11) · Cinco sementes da melhor configuração** · _log auditado_ \
+- **10/10/2026 (22:00–00:11 de 11/10) · Cinco sementes da melhor configuração** · _log auditado_ \
   `wandbSementes` \
   `F1 0,8553 ± 0,0091 · AP 0,8066 ± 0,0323 · P 0,8787 ± 0,0288 · R 0,8352 ± 0,0388` \
   **O que ensinou:** A semente 42 repetiu exatamente o resultado da 1ª busca, prova de que o treino é reprodutível. Mas ela foi a melhor das cinco: o 0,8634 era otimista, e a média real é 0,855. O AP varia 3,5 vezes mais que o F1 entre sementes, então diferenças de AP abaixo de ~0,03 numa semente só são ruído. Mesmo assim, o F1 fica 0,18 acima do melhor dataset da tese, mais de seis desvios de distância.
 
-- **11/10/2026 · Confirmar a 2ª busca com sementes** · _aguardando log_ \
+- **11/10/2026 (22:54–00:56 de 12/10) · Cinco sementes da 2ª busca** · _log auditado_ \
   `wandbSementesFocalF1` \
-  `referência: wandbSementes, F1 0,8553 ± 0,0091` \
-  **Por que foi criado:** O ganho da 2ª busca sobre a 1ª (+0,004 de F1, +0,021 de AP) é menor que o desvio entre sementes. Só a média de cinco sementes diz se alpha 0,6 com lote 8 é melhor de fato. A semente 42 deve repetir F1 0,8673, o que confirma que a configuração foi aplicada.
+  `F1 0,8643 ± 0,0037 · AP 0,8414 ± 0,0229 · P 0,8459 ± 0,0172 · R 0,8844 ± 0,0256 · 24,5 min por semente` \
+  **O que ensinou:** A semente 42 repetiu F1 0,8673, então a configuração foi aplicada como deveria. Desta vez o ganho é real: +0,009 de F1 sobre o wandbSementes, com p = 0,032 num teste de permutação exato entre as 5 + 5 sementes, e +0,049 de sensibilidade (p = 0,040). O AP subiu 0,035, mas sem significância (p = 0,087). O desvio do F1 caiu para menos da metade (0,0037 contra 0,0091): alpha 0,6 com lote 8 é a configuração de maior F1 e a mais estável do projeto. O preço continua sendo a precisão, 0,846, abaixo dos 0,934 da tese.
 
-- **11/10/2026 · Superar as quatro médias ao mesmo tempo, com folga** · _aguardando log_ \
+- **11/10/2026 (22:54–02:03 de 12/10) · Superar as quatro médias ao mesmo tempo, com folga** · _log auditado_ \
   `optunaSuperaTese` \
-  `9 de 14 experimentos já superam as 4 médias; os do Optuna falham só na precisão` \
-  **Por que foi criado:** Otimizar só o F1 levou a busca a trocar precisão por sensibilidade até a precisão cair abaixo da tese. A busca seguinte exige as quatro métricas acima da tese com folga de 0,01 e só então maximiza o F1, explorando alpha entre 0,25 e 0,5, a faixa entre a precisão alta da 1ª rodada e a sensibilidade alta do Optuna.
+  `P 0,9629 ± 0,0067 · R 0,5261 ± 0,0388 · F1 0,6799 ± 0,0337 · AP 0,5176 ± 0,0382 · 3 de 3 sementes superam as 4` \
+  **O que ensinou:** Objetivo cumprido: as três sementes e a média superam as quatro métricas da tese, com +0,029 de folga na precisão. A busca voltou ao alpha 0,25 com lr ~0,011, praticamente o altoLearningRate da 1ª rodada: os três trials que passaram a tese na validação usaram alpha 0,25 ou 0,35, e learning rate e weight decay foram os hiperparâmetros mais importantes (0,41 e 0,29). Mas o F1 ficou em 0,68, abaixo dos 0,77 do altoLearningRate. O motivo é a escolha do checkpoint: ela exigia precisão de pelo menos 0,944 na validação, onde a precisão sai menor que no teste, e acabou ficando com épocas conservadoras, de sensibilidade baixa. As últimas épocas tinham F1 maior na validação (0,69 a 0,75). A curva precisão × sensibilidade do teste aponta para o mesmo lado: no limiar 0,45, as três sementes ainda superariam a tese em precisão e sensibilidade, com F1 de 0,73 a 0,79. Como isso foi visto no teste, é uma pista e não um resultado. Superar a tese nas quatro métricas é robusto; fazer isso com F1 alto pede uma folga menor na validação.
 <!-- linha-do-tempo:fim -->
 
 ---
