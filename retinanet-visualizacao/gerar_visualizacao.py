@@ -4,6 +4,9 @@ Le os logs completos (resultados-*.md) de cada pasta em retinanet-experimentos/,
 sem dependencias alem da biblioteca padrao. Experimentos novos entram sozinhos:
 basta a pasta ter o log completo.
 
+Tambem reescreve a linha do tempo do README.md da raiz (entre as marcas
+<!-- linha-do-tempo:inicio --> e <!-- linha-do-tempo:fim -->).
+
 Uso:
     python3 gerar_visualizacao.py                 # grava retinanet-visualizacao.html
     python3 gerar_visualizacao.py --fragmento X   # tambem grava a versao sem <html>/<head>
@@ -257,6 +260,47 @@ def montar_dados():
     }
 
 
+README = RAIZ / "README.md"
+MARCA_INICIO = "<!-- linha-do-tempo:inicio -->"
+MARCA_FIM = "<!-- linha-do-tempo:fim -->"
+
+
+def linha_do_tempo_markdown(dados):
+    """A mesma linha do tempo do painel, em Markdown, para o README."""
+    com_log = {e["nome"] for e in dados["experimentos"]}
+    blocos = []
+    for m in dados["linha_do_tempo"]:
+        if not m["experimentos"]:
+            estado, rotulo = "decisão", "Por quê"
+        elif any(n in com_log for n in m["experimentos"]):
+            estado, rotulo = "log auditado", "O que ensinou"
+        else:
+            estado, rotulo = "aguardando log", "Por que foi criado"
+        hora = f" ({m['hora']})" if m["hora"] else ""
+        exps = " · ".join(f"`{n}`" for n in m["experimentos"])
+        # "\\" no fim da linha e a quebra de linha do GitHub dentro de um item de lista.
+        linhas = [f"- **{m['data']}{hora} · {m['titulo']}** · _{estado}_"]
+        if exps:
+            linhas.append(f"  {exps}")
+        linhas += [f"  `{m['numeros']}`", f"  **{rotulo}:** {m['licao']}"]
+        blocos.append(" \\\n".join(linhas))
+    return "\n\n".join(blocos)
+
+
+def atualizar_readme(dados):
+    """Reescreve o trecho entre as marcas do README; o resto fica intacto."""
+    if not README.exists():
+        return
+    texto = README.read_text()
+    if MARCA_INICIO not in texto or MARCA_FIM not in texto:
+        print(f"aviso: {README} sem as marcas da linha do tempo; nada alterado")
+        return
+    antes, resto = texto.split(MARCA_INICIO, 1)
+    _, depois = resto.split(MARCA_FIM, 1)
+    README.write_text(f"{antes}{MARCA_INICIO}\n{linha_do_tempo_markdown(dados)}\n{MARCA_FIM}{depois}")
+    print(f"ok {README} (linha do tempo)")
+
+
 def main():
     dados = montar_dados()
     modelo = (Path(__file__).resolve().parent / "modelo.html").read_text()
@@ -267,6 +311,7 @@ def main():
         "</head>\n<body>\n" + pagina + "\n</body>\n</html>\n"
     )
     print(f"ok {SAIDA} ({len(dados['experimentos'])} experimentos)")
+    atualizar_readme(dados)
     if "--fragmento" in sys.argv:
         destino = Path(sys.argv[sys.argv.index("--fragmento") + 1])
         destino.write_text(pagina)

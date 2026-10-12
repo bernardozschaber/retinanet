@@ -270,7 +270,8 @@ const NOME_M = { PRECISION: "Precisão", RECALL: "Sensibilidade", F1: "F-measure
 const NOME_M_LONGO = { PRECISION: "Precisão (Precision)", RECALL: "Sensibilidade (Recall)", F1: "F-measure (F1)", AP_TESE: "AP (AP_TESE)" };
 const REF = DADOS.ref;
 const EXP = DADOS.experimentos;
-const fmt = (v, d = 4) => (v == null || Number.isNaN(v)) ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const arred = (v, d) => Math.round(v * 10 ** d + 1e-6) / 10 ** d;  // 0,47405 -> 0,4741, apesar do binário
+const fmt = (v, d = 4) => (v == null || Number.isNaN(v)) ? "—" : arred(v, d).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
 const sinal = (v, d = 4) => (v >= 0 ? "+" : "−") + fmt(Math.abs(v), d);
 const rotulo = (e) => e.sementes ? `${e.nome} (${e.testes.length} sementes)` : e.nome;
 
@@ -365,7 +366,8 @@ function gPR(t) {
   const destaque = new Set([EXP[0].nome, "baseline", ...sementes.map(e => e.nome)]);
   traces.push({
     x: EXP.map(e => e.resumo.RECALL.media), y: EXP.map(e => e.resumo.PRECISION.media),
-    mode: "markers+text", text: EXP.map(e => destaque.has(e.nome) ? rotulo(e) : ""), textposition: "top left",
+    mode: "markers+text", text: EXP.map(e => destaque.has(e.nome) ? rotulo(e) : ""),
+    textposition: EXP.map(e => e.nome === "baseline" ? "middle right" : "top left"),
     textfont: { color: t.ink, size: 11 },
     marker: { color: EXP.map(e => e.supera_media ? t.fuc : t.bg), size: EXP.map(e => e.sementes ? 13 : 10),
       line: { color: t.fuc, width: 2 } },
@@ -384,7 +386,9 @@ function gPR(t) {
   }), CONF);
   const fora = EXP.filter(e => !e.supera_media && e.resumo.RECALL.media > REF.RECALL).map(e => e.nome);
   document.getElementById("leitura-pr").textContent = fora.length
-    ? `Abaixo da faixa sombreada, com sensibilidade alta mas precisão abaixo da tese: ${fora.join(", ")}. São as execuções que otimizaram F1 e trocaram precisão por sensibilidade.`
+    ? `Abaixo da faixa sombreada, com sensibilidade acima da tese mas precisão abaixo dela: ${fora.join(", ")}. ` +
+      (fora.some(n => n.toLowerCase().includes("optuna") || n.includes("Sementes"))
+        ? "Nas execuções que vêm das buscas com Optuna, é o efeito de otimizar o F1: mais sensibilidade, à custa de precisão." : "")
     : "Todas as execuções com sensibilidade acima da tese também ficam acima dela em precisão.";
 }
 
