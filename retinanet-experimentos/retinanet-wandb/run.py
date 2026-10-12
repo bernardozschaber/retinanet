@@ -3,8 +3,8 @@
 # --------------------------------------------------------------
 # Ponto de entrada do experimento na Flautim.
 #
-# Usa os MESMOS RetinaDataset.py (retinanet-dataset/), RetinaModel.py
-# (retinanet-model/) e RetinaExperiment.py (retinanet-experiment/), sem alteracao. O W&B entra por uma subclasse do
+# Usa os MESMOS RetinaDataset.py, RetinaModel.py e RetinaExperiment.py da
+# raiz do projeto, sem alteracao. O W&B entra por uma subclasse do
 # RetinaExperiment definida aqui, que repassa ao W&B as metricas que os
 # loops ja calculam (perdas, lr, metricas de validacao por epoca, teste).
 #
