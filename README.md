@@ -353,7 +353,7 @@ Os achados principais:
 - **Uma semente só engana.** Na primeira repetição com sementes, o resultado de uma execução isolada (F1 0,8634) era o melhor de cinco, e a média real foi 0,855. Diferenças de AP abaixo de ~0,03 entre execuções de uma semente são ruído.
 - **A escolha do checkpoint importa tanto quanto os hiperparâmetros.** O optunaSuperaTese tem quase a mesma configuração do altoLearningRate, mas escolheu o checkpoint exigindo precisão de pelo menos 0,944 na validação. Isso garantiu a precisão no teste à custa de sensibilidade: o F1 ficou em 0,68 (média de três sementes), contra 0,77 do altoLearningRate (uma semente). A curva precisão × sensibilidade do teste reforça isso: no limiar 0,45, as três sementes ainda passariam a tese em precisão e sensibilidade, com F1 de 0,73 a 0,79. Por ter sido observado no teste, isso serve de pista para o próximo experimento, não de resultado.
 
-O próximo passo natural é juntar as duas coisas: a configuração de alpha 0,25 do optunaSuperaTese com uma folga menor (ou nenhuma) na escolha do checkpoint, para tentar superar a tese nas quatro métricas com F1 perto de 0,77.
+Os dois próximos experimentos já estão prontos e testam essa pista sem olhar o teste. O `retinanet-wandbSementesSuperaTese` repete a configuração do optunaSuperaTese com cinco sementes e compara, no mesmo treino, quatro regras de escolha do checkpoint; a principal, sem folga, foi declarada antes de rodar. O `retinanet-wandbSementesAlpha030` faz o mesmo com alpha 0,30, para ganhar sensibilidade com o limiar mantido em 0,5.
 
 
 ---
@@ -406,6 +406,16 @@ O que cada rodada ensinou, em ordem cronológica. Os horários de início e fim 
   `optunaSuperaTese` \
   `P 0,9629 ± 0,0067 · R 0,5261 ± 0,0388 · F1 0,6799 ± 0,0337 · AP 0,5176 ± 0,0382 · 3 de 3 sementes superam as 4` \
   **O que ensinou:** Objetivo cumprido: as três sementes e a média superam as quatro métricas da tese, com +0,029 de folga na precisão. A busca voltou ao alpha 0,25 com lr ~0,011, praticamente o altoLearningRate da 1ª rodada: os três trials que passaram a tese na validação usaram alpha 0,25 ou 0,35, e learning rate e weight decay foram os hiperparâmetros mais importantes (0,41 e 0,29). Mas o F1 ficou em 0,68, abaixo dos 0,77 do altoLearningRate. O motivo é a escolha do checkpoint: ela exigia precisão de pelo menos 0,944 na validação, onde a precisão sai menor que no teste, e acabou ficando com épocas conservadoras, de sensibilidade baixa. As últimas épocas tinham F1 maior na validação (0,69 a 0,75). A curva precisão × sensibilidade do teste aponta para o mesmo lado: no limiar 0,45, as três sementes ainda superariam a tese em precisão e sensibilidade, com F1 de 0,73 a 0,79. Como isso foi visto no teste, é uma pista e não um resultado. Superar a tese nas quatro métricas é robusto; fazer isso com F1 alto pede uma folga menor na validação.
+
+- **12/10/2026 · Quatro critérios de checkpoint no mesmo treino** · _aguardando log_ \
+  `wandbSementesSuperaTese` \
+  `referência: optunaSuperaTese, 3 de 3 sementes acima da tese, F1 0,6799 ± 0,0337` \
+  **Por que foi criado:** Testa a folga do checkpoint sem olhar o teste. A configuração do optunaSuperaTese é treinada com cinco sementes, e cada treino guarda o melhor checkpoint de quatro regras medidas na validação: sem folga (a principal, declarada antes de rodar), folga de 0,01, maior AP_VOC e última época. Só a principal entra nas tabelas; as outras mostram, no mesmo treino, quanto a regra de escolha muda o resultado.
+
+- **12/10/2026 · Alpha 0,30 com o limiar fixo em 0,5** · _aguardando log_ \
+  `wandbSementesAlpha030` \
+  `igual ao wandbSementesSuperaTese, com focal_alpha 0,30 em vez de 0,25` \
+  **Por que foi criado:** A pista do limiar 0,45 foi vista no teste e não pode ser usada como está. Subir um pouco o alpha da perda focal empurra os scores para cima de forma legítima, com o limiar da tese mantido em 0,5. O trial com alpha 0,35 da busca anterior também passou a tese na validação.
 <!-- linha-do-tempo:fim -->
 
 ---

@@ -165,6 +165,19 @@ LINHA_DO_TEMPO = [
               "lado: no limiar 0,45, as três sementes ainda superariam a tese em precisão e sensibilidade, com F1 de 0,73 "
               "a 0,79. Como isso foi visto no teste, é uma pista e não um resultado. Superar a tese nas quatro métricas é "
               "robusto; fazer isso com F1 alto pede uma folga menor na validação."},
+    {"data": "12/10/2026", "hora": "", "titulo": "Quatro critérios de checkpoint no mesmo treino",
+     "experimentos": ["wandbSementesSuperaTese"],
+     "numeros": "referência: optunaSuperaTese, 3 de 3 sementes acima da tese, F1 0,6799 ± 0,0337",
+     "licao": "Testa a folga do checkpoint sem olhar o teste. A configuração do optunaSuperaTese é treinada com cinco "
+              "sementes, e cada treino guarda o melhor checkpoint de quatro regras medidas na validação: sem folga (a "
+              "principal, declarada antes de rodar), folga de 0,01, maior AP_VOC e última época. Só a principal entra nas "
+              "tabelas; as outras mostram, no mesmo treino, quanto a regra de escolha muda o resultado."},
+    {"data": "12/10/2026", "hora": "", "titulo": "Alpha 0,30 com o limiar fixo em 0,5",
+     "experimentos": ["wandbSementesAlpha030"],
+     "numeros": "igual ao wandbSementesSuperaTese, com focal_alpha 0,30 em vez de 0,25",
+     "licao": "A pista do limiar 0,45 foi vista no teste e não pode ser usada como está. Subir um pouco o alpha da perda "
+              "focal empurra os scores para cima de forma legítima, com o limiar da tese mantido em 0,5. O trial com "
+              "alpha 0,35 da busca anterior também passou a tese na validação."},
 ]
 
 
