@@ -1,0 +1,8 @@
+# Substitui o requirements.txt (vazio) do baseline neste experimento.
+#
+# numpy fica travado na versao da imagem experiments-gpu:0.2: qualquer
+# pacote que puxe numpy>=2 quebra torch, cv2 e pycocotools no import
+# (ver o comentario no requirements.txt do retinanet-baseline). O optuna
+# aceita numpy 1.x, entao o pip nao precisa trocar nada.
+numpy==1.26.4
+optuna>=4.0,<5
