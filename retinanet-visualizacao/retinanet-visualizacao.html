@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Painel RetinaNet Bacilos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: relatório de laboratório em coluna única, larga; cada seção = uma pergunta, um gráfico, uma leitura.
+   Cores da coloração de Ziehl-Neelsen: fucsina (bacilo, este trabalho) sobre azul de metileno (contracoloração, tese). */
+:root {
+  --bg: #fbf9fb;
+  --surface: #ffffff;
+  --ink: #1d1a22;
+  --ink-2: #5a5462;
+  --muted: #6e6777;
+  --line: #ebe6ee;
+  --fucsina: #c2185b;
+  --fucsina-soft: #f8e1eb;
+  --fucsina-tinta: #a8124c;
+  --metileno: #2b62a8;
+  --metileno-soft: #e1e9f5;
+  --neutro: #b7b0be;
+  --zero: #f0edf2;
+  --div-pos: #eb9bbb;
+  --div-neg: #9dbbe3;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17141b; --surface: #1f1b24; --ink: #f3eff5; --ink-2: #c2bbc9; --muted: #918a9b; --line: #2f2a36;
+    --fucsina: #e2528a; --fucsina-soft: #3a1d2b; --fucsina-tinta: #f07aa6; --metileno: #5f93dc; --metileno-soft: #1c2a3e;
+    --neutro: #5d5666; --zero: #26212b; --div-pos: #8a2853; --div-neg: #2b4f86; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17141b; --surface: #1f1b24; --ink: #f3eff5; --ink-2: #c2bbc9; --muted: #918a9b; --line: #2f2a36;
+  --fucsina: #e2528a; --fucsina-soft: #3a1d2b; --fucsina-tinta: #f07aa6; --metileno: #5f93dc; --metileno-soft: #1c2a3e;
+  --neutro: #5d5666; --zero: #26212b; --div-pos: #8a2853; --div-neg: #2b4f86; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.pagina { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: grid; gap: 56px; }
+h1, h2 { font-family: var(--font-display); font-stretch: 85%; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 4.5vw, 3.1rem); font-weight: 800; line-height: 1.05; }
+h2 { font-size: 1.55rem; font-weight: 700; line-height: 1.15; }
+p { margin: 0; max-width: 68ch; }
+.rotulo { font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.leitura { color: var(--ink-2); }
+em.fucsina { font-style: normal; color: var(--fucsina); font-weight: 600; }
+em.metileno { font-style: normal; color: var(--metileno); font-weight: 600; }
+
+/* Cabeçalho */
+.topo { display: grid; gap: 18px; }
+.chaves { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.chave { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--ink-2); }
+.chave i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.alvo { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; color: var(--ink-2); }
+.alvo b { font-family: var(--font-data); font-weight: 600; color: var(--metileno); }
+
+.indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.indicador { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.indicador .valor { font-family: var(--font-display); font-stretch: 80%; font-size: 2.3rem; font-weight: 800; line-height: 1; color: var(--fucsina); font-variant-numeric: tabular-nums; }
+.indicador.tese .valor { color: var(--metileno); }
+.indicador .detalhe { font-size: 0.82rem; color: var(--ink-2); }
+
+/* Seções */
+section { display: grid; gap: 14px; min-width: 0; }
+.cabeca { display: grid; gap: 6px; }
+.figura { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px 4px; min-width: 0; }
+.grafico { width: 100%; min-height: 320px; }
+.controles { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.controles label { font-size: 0.82rem; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+select { font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.segmentado { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.segmentado button { font: inherit; font-size: 0.82rem; background: var(--surface); color: var(--ink-2); border: 0; padding: 6px 12px; cursor: pointer; }
+.segmentado button + button { border-left: 1px solid var(--line); }
+.segmentado button[aria-pressed="true"] { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--fucsina); outline-offset: 2px; }
+.grade-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .grade-2 { grid-template-columns: minmax(0, 1fr); } }
+.vazio { border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--ink-2); display: grid; gap: 6px; }
+
+.matriz { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .matriz { grid-template-columns: minmax(0, 1fr); } }
+.derivadas { display: grid; gap: 8px; font-size: 0.9rem; }
+.derivadas div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.derivadas span:last-child { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* Tabela */
+.tabela-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; min-width: 820px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-family: var(--font-data); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td:first-child { font-family: var(--font-body); }
+tr.tese td { color: var(--metileno); }
+.selo { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-family: var(--font-data); }
+.selo.sim { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
+.selo.nao { background: var(--zero); color: var(--muted); }
+.abaixo { color: var(--metileno); }
+td.mudou { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
+tr.base td { color: var(--ink-2); }
+.nota { font-size: 0.82rem; color: var(--ink-2); }
+
+/* Linha do tempo */
+.tempo { list-style: none; margin: 0; padding: 0; display: grid; }
+.marco { display: grid; grid-template-columns: 128px 20px minmax(0, 1fr); grid-template-areas: "quando eixo corpo"; column-gap: 14px; }
+.marco .quando { grid-area: quando; text-align: right; font-family: var(--font-data); font-size: 0.78rem; color: var(--ink-2); line-height: 1.4; padding-top: 1px; display: grid; align-content: start; }
+.marco .quando b { color: var(--ink); font-weight: 600; }
+.marco .eixo { grid-area: eixo; position: relative; }
+.marco .eixo::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.marco:first-child .eixo::before { top: 8px; }
+.marco:last-child .eixo::before { bottom: auto; height: 8px; }
+.marco .eixo::after { content: ""; position: absolute; left: 3px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--fucsina); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--fucsina); }
+.marco.pendente .eixo::after { background: var(--bg); }
+.marco.decisao .eixo::after { background: var(--ink-2); box-shadow: 0 0 0 1px var(--ink-2); }
+.marco .corpo { grid-area: corpo; display: grid; gap: 6px; padding-bottom: 30px; min-width: 0; }
+.marco h3 { font-family: var(--font-display); font-stretch: 85%; font-size: 1.12rem; font-weight: 700; margin: 0; line-height: 1.2; text-wrap: balance; }
+.marco .titulo { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.marco .exps { display: flex; flex-wrap: wrap; gap: 4px; }
+.marco .exps span { font-family: var(--font-data); font-size: 0.72rem; color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+.marco .numeros { font-family: var(--font-data); font-size: 0.8rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.marco .licao { color: var(--ink-2); max-width: 74ch; }
+.marco .licao::before { content: "O que ensinou · "; font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fucsina-tinta); }
+.marco.pendente .licao::before { content: "Por que foi criado · "; color: var(--muted); }
+.marco.decisao .licao::before { content: "Por quê · "; color: var(--muted); }
+@media (max-width: 620px) {
+  .marco { grid-template-columns: 20px minmax(0, 1fr); grid-template-areas: "eixo quando" "eixo corpo"; }
+  .marco .quando { text-align: left; padding-bottom: 4px; }
+}
+footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="pagina">
+  <header class="topo">
+    <span class="rotulo">Detecção de bacilos de Koch · RetinaNet R50-FPN v2 · limiar de score 0,5 · IoU 0,1</span>
+    <h1>RetinaNet contra a tese, métrica por métrica</h1>
+    <p class="leitura">Cada experimento comparado com o RetinaNet da tese de Thales Carvalho no mesmo protocolo de avaliação.
+      As cores seguem a coloração de Ziehl-Neelsen: <em class="fucsina">fucsina</em>, a cor do bacilo, marca este trabalho;
+      <em class="metileno">azul de metileno</em>, a contracoloração, marca a tese.</p>
+    <div class="alvo" id="alvo"></div>
+    <div class="indicadores" id="indicadores"></div>
+  </header>
+
+  <section id="superacao">
+    <div class="cabeca">
+      <span class="rotulo">1 · Folga sobre a tese</span>
+      <h2>Quem supera a média da tese nas quatro métricas</h2>
+      <p class="leitura">Diferença de cada métrica para a média do RetinaNet da tese (datasets 1 a 4). Fucsina: acima da tese; azul: abaixo.
+        A escala satura em ±0,15 para que folgas pequenas de precisão continuem visíveis. Experimentos com várias sementes mostram a média.</p>
+    </div>
+    <div class="figura"><div class="grafico" id="g-superacao"></div></div>
+  </section>
+
+  <section id="pr">
+    <div class="cabeca">
+      <span class="rotulo">2 · Ponto de operação</span>
+      <h2>Precisão × sensibilidade no limiar 0,5</h2>
+      <p class="leitura">Cada ponto é uma execução no teste. A área sombreada é onde precisão e sensibilidade superam a média da tese ao mesmo tempo;
+        as curvas finas são F1 constante. Os pontos da tese trazem o desvio entre rodadas.</p>
+    </div>
+    <div class="figura"><div class="grafico" id="g-pr" style="min-height:460px"></div></div>
+    <p class="leitura" id="leitura-pr"></p>
+  </section>
+
+  <section id="faixas">
+    <div class="cabeca">
+      <span class="rotulo">3 · Mínimo, média e máximo</span>
+      <h2>Faixa de cada grupo de execuções</h2>
+      <p class="leitura">Candlestick: o pavio vai do mínimo ao máximo, o corpo cobre média ± desvio e o traço horizontal é a média.
+        Tese: os 4 datasets. 1ª rodada: as 10 variações de um hiperparâmetro. Experimentos com sementes: uma vela cada. A linha azul é a média da tese.</p>
+    </div>
+    <div class="grade-2">
+      <div class="figura"><div class="grafico" id="g-vela-PRECISION"></div></div>
+      <div class="figura"><div class="grafico" id="g-vela-RECALL"></div></div>
+      <div class="figura"><div class="grafico" id="g-vela-F1"></div></div>
+      <div class="figura"><div class="grafico" id="g-vela-AP_TESE"></div></div>
+    </div>
+  </section>
+
+  <section id="matriz">
+    <div class="cabeca">
+      <span class="rotulo">4 · Matriz de confusão da detecção</span>
+      <h2>Acertos, falsos positivos e bacilos perdidos</h2>
+      <p class="leitura">Em detecção de objetos não existe verdadeiro negativo contável: o fundo da lâmina não é uma lista de objetos.
+        Por isso a matriz tem três células e a curva ROC (que depende da taxa de falsos positivos sobre os negativos) dá lugar à curva precisão × sensibilidade.</p>
+    </div>
+    <div class="controles"><label for="sel-matriz">Execução <select id="sel-matriz"></select></label></div>
+    <div class="matriz">
+      <div class="figura"><div class="grafico" id="g-matriz" style="min-height:340px"></div></div>
+      <div class="derivadas" id="derivadas"></div>
+    </div>
+  </section>
+
+  <section id="aprendizado">
+    <div class="cabeca">
+      <span class="rotulo">5 · Diagnóstico do treino</span>
+      <h2>Curva de aprendizado na validação</h2>
+      <p class="leitura">Métrica da validação (20 lâminas) a cada época. A execução escolhida aparece em fucsina; com sementes, a faixa vai do pior ao melhor
+        valor da época e a linha é a média. Em cinza, as demais execuções, para contexto. A linha azul é a média da tese no teste, só como referência.</p>
+    </div>
+    <div class="controles">
+      <label for="sel-curva">Execução <select id="sel-curva"></select></label>
+      <div class="segmentado" role="group" aria-label="Métrica" id="seg-metrica"></div>
+    </div>
+    <div class="figura"><div class="grafico" id="g-curva" style="min-height:380px"></div></div>
+  </section>
+
+  <section id="curva-pr">
+    <div class="cabeca">
+      <span class="rotulo">6 · Curva precisão × sensibilidade no teste</span>
+      <h2>O que acontece ao mover o limiar</h2>
+      <p class="leitura">Curva completa, limiar de 0,05 a 0,95, gravada pelos experimentos a partir do optunaSuperaTese. O ponto marcado em cada curva é o limiar 0,5 da tese.</p>
+    </div>
+    <div id="area-curva-pr"></div>
+  </section>
+
+  <section id="custo">
+    <div class="cabeca">
+      <span class="rotulo">7 · Custo</span>
+      <h2>Tempo de treino × F1</h2>
+      <p class="leitura">Minutos de treino de uma execução (Quadro RTX 6000) contra o F1 no teste. Para experimentos com sementes, tempo e F1 são médias, e a barra é ± desvio.
+        O tempo de busca do Optuna não entra aqui; ele aparece na tabela.</p>
+    </div>
+    <div class="figura"><div class="grafico" id="g-custo" style="min-height:360px"></div></div>
+  </section>
+
+  <section id="tabela">
+    <div class="cabeca">
+      <span class="rotulo">8 · Números</span>
+      <h2>Tabela completa</h2>
+    </div>
+    <div class="tabela-wrap"><table id="tab"></table></div>
+  </section>
+
+  <section id="hiperparametros">
+    <div class="cabeca">
+      <span class="rotulo">9 · Configuração</span>
+      <h2>Hiperparâmetros de cada treino</h2>
+      <p class="leitura">Na mesma ordem da tabela acima. A primeira linha é a configuração base; os valores em fucsina são os que cada treino mudou em relação a ela.</p>
+    </div>
+    <div class="tabela-wrap"><table id="tab-hiper"></table></div>
+    <p class="nota" id="hiper-fixos"></p>
+  </section>
+
+  <section id="linha-do-tempo">
+    <div class="cabeca">
+      <span class="rotulo">10 · Linha do tempo</span>
+      <h2>O que cada rodada ensinou</h2>
+      <p class="leitura">Os experimentos em ordem cronológica, com o horário de início e de fim tirado de cada log e os números do teste no limiar 0,5.
+        Ponto cheio: log auditado. Ponto vazio: experimento criado, aguardando o log. Ponto cinza: decisão de método.</p>
+    </div>
+    <ol class="tempo" id="tempo"></ol>
+  </section>
+
+  <footer>
+    <span id="rodape"></span>
+    <span>Fonte: logs dos experimentos na plataforma Flautim e Tabelas 22 a 25 da tese. Conjunto de teste: 40 lâminas, 614 bacilos anotados.</span>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+const DADOS = {"gerado_em": "11/10/2026 23:28", "tese": {"dataset-1": {"PRECISION": {"media": 0.966, "desvio": 0.0096}, "RECALL": {"media": 0.4071, "desvio": 0.0278}, "F1": {"media": 0.5723, "desvio": 0.0276}, "AP_TESE": {"media": 0.3971, "desvio": 0.0283}}, "dataset-2": {"PRECISION": {"media": 0.9078, "desvio": 0.0033}, "RECALL": {"media": 0.5002, "desvio": 0.0224}, "F1": {"media": 0.6447, "desvio": 0.0179}, "AP_TESE": {"media": 0.4707, "desvio": 0.0214}}, "dataset-3": {"PRECISION": {"media": 0.9285, "desvio": 0.0225}, "RECALL": {"media": 0.5314, "desvio": 0.0365}, "F1": {"media": 0.6748, "desvio": 0.0273}, "AP_TESE": {"media": 0.504, "desvio": 0.0331}}, "dataset-4": {"PRECISION": {"media": 0.9332, "desvio": 0.026}, "RECALL": {"media": 0.4575, "desvio": 0.1085}, "F1": {"media": 0.6059, "desvio": 0.0918}, "AP_TESE": {"media": 0.4415, "desvio": 0.1032}}}, "ref": {"PRECISION": 0.933875, "RECALL": 0.47404999999999997, "F1": 0.624425, "AP_TESE": 0.453325}, "hiper_base": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "linha_do_tempo": [{"data": "07/10/2026", "hora": "12:16–12:44", "titulo": "Baseline", "experimentos": ["baseline"], "numeros": "P 0,9537 · R 0,6042 · F1 0,7398 · AP 0,5963 · 27 min de treino", "licao": "A configuração base já supera a média do RetinaNet da tese nas quatro métricas. A estratégia de ladrilhos de 640 px, com a imagem reescalada para o bacilo mediano ter ~40 px, resolve o problema dos bacilos pequenos demais. O ponto fraco é a sensibilidade: o modelo acerta quase tudo o que marca, mas deixa 40% dos bacilos sem marcar."}, {"data": "08/10/2026", "hora": "08:45–11:04", "titulo": "1ª rodada: um hiperparâmetro por vez", "experimentos": ["altoLearningRate", "baixoLearningRate", "altoEpochs", "altoWeightDecay", "altoImageSize", "baixoImageSize", "altoTargetBox", "baixoTargetBox", "baixoTrainableLayers"], "numeros": "melhor: altoLearningRate, F1 0,7748 · AP 0,6431 · 8 de 10 configurações superam as 4 médias", "licao": "Mexer no learning rate foi o que mais rendeu. Ladrilho e escala fora de 640 px / 40 px pioraram, e congelar camadas ou dobrar o weight decay também. 40 épocas ganharam só +0,005 de F1 por 31% a mais de tempo. O baixoTargetBox desabou (sensibilidade 0,22): bacilos a 32 px ficam pequenos demais para as âncoras. A pista mais importante: com o limiar escolhido na validação o F1 chegava a ~0,86, então o modelo já detectava bem e o problema era a calibração dos scores."}, {"data": "10/10/2026", "hora": "", "titulo": "Decisão: comparar só no limiar 0,5", "experimentos": [], "numeros": "alvo: P > 0,9339 · R > 0,4741 · F1 > 0,6244 · AP > 0,4533", "licao": "O limiar escolhido na validação dá números melhores, mas muda a régua. Para a comparação com a tese ser justa, tudo passou a ser medido no limiar 0,5, e as análises com limiar menor saíram. A partir daqui, melhorar significa calibrar o modelo para o 0,5."}, {"data": "10/10/2026", "hora": "15:29–18:15", "titulo": "1ª busca com Optuna", "experimentos": ["optuna"], "numeros": "P 0,8571 · R 0,8697 · F1 0,8634 · AP 0,8386 · busca 140 min + treino 27 min", "licao": "O alpha da perda focal é a alavanca da calibração. Os 5 melhores trials usaram alpha 0,5, o maior valor permitido, contra 0,25 do padrão, e grad_clip 5. A sensibilidade saltou de 0,60 para 0,87 e o limiar ideal na validação subiu de 0,35 para 0,55: o 0,5 da tese virou praticamente o corte certo. O preço: a precisão caiu para 0,857, abaixo dos 0,934 da tese, e o AP50 caiu de 0,795 para 0,764, com caixas um pouco menos justas (fg_iou 0,4)."}, {"data": "10/10/2026", "hora": "18:16–18:50", "titulo": "Treino com Weights & Biases", "experimentos": ["wandb"], "numeros": "P 0,9807 · R 0,4967 · F1 0,6595 · AP 0,4910 · 34 min de treino", "licao": "Somar duas melhorias isoladas (lr 1e-2 e 40 épocas) com lote 8 não somou os ganhos: o F1 ficou abaixo do baseline. O melhor checkpoint saiu na época 13 de 40, então mais épocas não ajudaram. O W&B rodou offline por falta de chave, o que não atrapalha o treino: os gráficos só aparecem depois de um wandb sync."}, {"data": "10/10/2026", "hora": "19:35–22:06", "titulo": "2ª busca: focal loss e F1 no 0,5", "experimentos": ["optunaFocalF1"], "numeros": "P 0,8281 · R 0,9104 · F1 0,8673 · AP 0,8593 · busca 125 min, 12 de 20 trials podados", "licao": "O alpha virou o hiperparâmetro mais importante da busca (importância 0,33). O gamma pesou sete vezes menos (0,05): 1,5 e 2,0 deram resultados parecidos, e o vencedor usou 1,5, que suprime menos os exemplos fáceis e, junto com alpha 0,6, tende a empurrar os scores para cima. O alpha 0,75 não apareceu entre os 5 melhores, então o ótimo fica entre 0,5 e 0,6. Lote 8 apareceu em todos os 5 melhores. Com alpha 0,6 a calibração passou um pouco do ponto: o limiar ideal na validação foi 0,60 e a precisão caiu para 0,83."}, {"data": "11/10/2026", "hora": "22:00 (10/10)–00:11", "titulo": "Cinco sementes da melhor configuração", "experimentos": ["wandbSementes"], "numeros": "F1 0,8553 ± 0,0091 · AP 0,8066 ± 0,0323 · P 0,8787 ± 0,0288 · R 0,8352 ± 0,0388", "licao": "A semente 42 repetiu exatamente o resultado da 1ª busca, prova de que o treino é reprodutível. Mas ela foi a melhor das cinco: o 0,8634 era otimista, e a média real é 0,855. O AP varia 3,5 vezes mais que o F1 entre sementes, então diferenças de AP abaixo de ~0,03 numa semente só são ruído. Mesmo assim, o F1 fica 0,18 acima do melhor dataset da tese, mais de seis desvios de distância."}, {"data": "11/10/2026", "hora": "", "titulo": "Confirmar a 2ª busca com sementes", "experimentos": ["wandbSementesFocalF1"], "numeros": "referência: wandbSementes, F1 0,8553 ± 0,0091", "licao": "O ganho da 2ª busca sobre a 1ª (+0,004 de F1, +0,021 de AP) é menor que o desvio entre sementes. Só a média de cinco sementes diz se alpha 0,6 com lote 8 é melhor de fato. A semente 42 deve repetir F1 0,8673, o que confirma que a configuração foi aplicada."}, {"data": "11/10/2026", "hora": "", "titulo": "Superar as quatro médias ao mesmo tempo, com folga", "experimentos": ["optunaSuperaTese"], "numeros": "9 de 14 experimentos já superam as 4 médias; os do Optuna falham só na precisão", "licao": "Otimizar só o F1 levou a busca a trocar precisão por sensibilidade até a precisão cair abaixo da tese. A busca seguinte exige as quatro métricas acima da tese com folga de 0,01 e só então maximiza o F1, explorando alpha entre 0,25 e 0,5, a faixa entre a precisão alta da 1ª rodada e a sensibilidade alta do Optuna."}], "hiper_fixos": "tile_overlap 128 · crops_per_image 8 · score_threshold 0,5 · evaluation_iou 0,1 · RetinaNet R50-FPN v2 com pesos COCO", "experimentos": [{"hiper": {"image_size": 640, "target_box": 40, "batch_size": 8, "learning_rate": 0.0025210814666085596, "momentum": 0.9465500014486941, "weight_decay": 0.00027586986748117065, "warmup_steps": 300, "grad_clip": 2.5, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.6, "focal_gamma": 1.5, "fg_iou": 0.5, "nms_thresh": 0.3, "merge_nms": 0.25}, "hiper_origem": "tabela", "nome": "optunaFocalF1", "rodada": "buscas e sementes", "sementes": false, "testes": [{"PRECISION": 0.8281, "RECALL": 0.9104, "F1": 0.8673, "AP_TESE": 0.8593, "AP_VOC": 0.9297, "AP50": 0.7728, "F1_IOU50": 0.7773, "THRESHOLD": 0.5, "PREDICTIONS": 675.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.6684, "RECALL": 0.4085, "F1": 0.5071, "AP_TESE": 0.3357}, {"epoca": 2, "PRECISION": 0.7535, "RECALL": 0.7092, "F1": 0.7306, "AP_TESE": 0.6314}, {"epoca": 3, "PRECISION": 0.7023, "RECALL": 0.8791, "F1": 0.7808, "AP_TESE": 0.7832}, {"epoca": 4, "PRECISION": 0.8714, "RECALL": 0.6863, "F1": 0.7678, "AP_TESE": 0.6249}, {"epoca": 5, "PRECISION": 0.8006, "RECALL": 0.8529, "F1": 0.8259, "AP_TESE": 0.7888}, {"epoca": 6, "PRECISION": 0.7944, "RECALL": 0.8333, "F1": 0.8134, "AP_TESE": 0.7691}, {"epoca": 7, "PRECISION": 0.8037, "RECALL": 0.8562, "F1": 0.8291, "AP_TESE": 0.7896}, {"epoca": 8, "PRECISION": 0.8201, "RECALL": 0.8791, "F1": 0.8486, "AP_TESE": 0.8122}, {"epoca": 9, "PRECISION": 0.8759, "RECALL": 0.7614, "F1": 0.8147, "AP_TESE": 0.7091}, {"epoca": 10, "PRECISION": 0.7736, "RECALL": 0.8824, "F1": 0.8244, "AP_TESE": 0.8114}, {"epoca": 11, "PRECISION": 0.8069, "RECALL": 0.8464, "F1": 0.8262, "AP_TESE": 0.7751}, {"epoca": 12, "PRECISION": 0.7843, "RECALL": 0.8791, "F1": 0.829, "AP_TESE": 0.7959}, {"epoca": 13, "PRECISION": 0.7649, "RECALL": 0.8824, "F1": 0.8194, "AP_TESE": 0.8126}, {"epoca": 14, "PRECISION": 0.7603, "RECALL": 0.902, "F1": 0.8251, "AP_TESE": 0.8278}, {"epoca": 15, "PRECISION": 0.7446, "RECALL": 0.9052, "F1": 0.8171, "AP_TESE": 0.829}, {"epoca": 16, "PRECISION": 0.7727, "RECALL": 0.8889, "F1": 0.8267, "AP_TESE": 0.823}, {"epoca": 17, "PRECISION": 0.7872, "RECALL": 0.8824, "F1": 0.832, "AP_TESE": 0.8143}, {"epoca": 18, "PRECISION": 0.7874, "RECALL": 0.8954, "F1": 0.8379, "AP_TESE": 0.8216}, {"epoca": 19, "PRECISION": 0.7934, "RECALL": 0.866, "F1": 0.8281, "AP_TESE": 0.7967}, {"epoca": 20, "PRECISION": 0.7839, "RECALL": 0.8889, "F1": 0.8331, "AP_TESE": 0.8139}, {"epoca": 21, "PRECISION": 0.8104, "RECALL": 0.866, "F1": 0.8373, "AP_TESE": 0.7949}, {"epoca": 22, "PRECISION": 0.7829, "RECALL": 0.8954, "F1": 0.8354, "AP_TESE": 0.8202}, {"epoca": 23, "PRECISION": 0.7794, "RECALL": 0.8889, "F1": 0.8305, "AP_TESE": 0.8172}, {"epoca": 24, "PRECISION": 0.7582, "RECALL": 0.902, "F1": 0.8239, "AP_TESE": 0.8309}, {"epoca": 25, "PRECISION": 0.7929, "RECALL": 0.8758, "F1": 0.8323, "AP_TESE": 0.8108}, {"epoca": 26, "PRECISION": 0.7725, "RECALL": 0.8987, "F1": 0.8308, "AP_TESE": 0.8256}, {"epoca": 27, "PRECISION": 0.7988, "RECALL": 0.8824, "F1": 0.8385, "AP_TESE": 0.8184}, {"epoca": 28, "PRECISION": 0.8054, "RECALL": 0.8791, "F1": 0.8406, "AP_TESE": 0.8169}, {"epoca": 29, "PRECISION": 0.7843, "RECALL": 0.8791, "F1": 0.829, "AP_TESE": 0.8152}, {"epoca": 30, "PRECISION": 0.7759, "RECALL": 0.8824, "F1": 0.8257, "AP_TESE": 0.8133}]], "tempo_treino": 25.39333333333333, "tempo_busca": 125.45666666666666, "curvas": [], "resumo": {"PRECISION": {"media": 0.8281, "desvio": 0.0, "min": 0.8281, "max": 0.8281, "n": 1}, "RECALL": {"media": 0.9104, "desvio": 0.0, "min": 0.9104, "max": 0.9104, "n": 1}, "F1": {"media": 0.8673, "desvio": 0.0, "min": 0.8673, "max": 0.8673, "n": 1}, "AP_TESE": {"media": 0.8593, "desvio": 0.0, "min": 0.8593, "max": 0.8593, "n": 1}, "AP_VOC": {"media": 0.9297, "desvio": 0.0, "min": 0.9297, "max": 0.9297, "n": 1}, "AP50": {"media": 0.7728, "desvio": 0.0, "min": 0.7728, "max": 0.7728, "n": 1}, "PREDICTIONS": {"media": 675.0, "desvio": 0.0, "min": 675.0, "max": 675.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": false, "rodadas_que_superam": 0}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.0026159960682001554, "momentum": 0.9185585731063599, "weight_decay": 0.0002902988766898052, "warmup_steps": 300, "grad_clip": 5.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.5, "focal_gamma": 2.0, "fg_iou": 0.4, "nms_thresh": 0.4, "merge_nms": 0.3}, "hiper_origem": "tabela", "nome": "optuna", "rodada": "buscas e sementes", "sementes": false, "testes": [{"PRECISION": 0.8571, "RECALL": 0.8697, "F1": 0.8634, "AP_TESE": 0.8386, "AP_VOC": 0.9338, "AP50": 0.764, "F1_IOU50": 0.7728, "THRESHOLD": 0.5, "PREDICTIONS": 623.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.6261, "RECALL": 0.6895, "F1": 0.6563, "AP_TESE": 0.5798}, {"epoca": 2, "PRECISION": 0.6576, "RECALL": 0.8725, "F1": 0.75, "AP_TESE": 0.7715}, {"epoca": 3, "PRECISION": 0.6699, "RECALL": 0.8954, "F1": 0.7664, "AP_TESE": 0.8025}, {"epoca": 4, "PRECISION": 0.7507, "RECALL": 0.8954, "F1": 0.8167, "AP_TESE": 0.8198}, {"epoca": 5, "PRECISION": 0.8497, "RECALL": 0.7941, "F1": 0.8209, "AP_TESE": 0.7429}, {"epoca": 6, "PRECISION": 0.7615, "RECALL": 0.866, "F1": 0.8104, "AP_TESE": 0.8066}, {"epoca": 7, "PRECISION": 0.7644, "RECALL": 0.8693, "F1": 0.8135, "AP_TESE": 0.7975}, {"epoca": 8, "PRECISION": 0.8049, "RECALL": 0.8627, "F1": 0.8328, "AP_TESE": 0.811}, {"epoca": 9, "PRECISION": 0.8272, "RECALL": 0.8137, "F1": 0.8204, "AP_TESE": 0.7663}, {"epoca": 10, "PRECISION": 0.8111, "RECALL": 0.8562, "F1": 0.8331, "AP_TESE": 0.8041}, {"epoca": 11, "PRECISION": 0.8251, "RECALL": 0.817, "F1": 0.821, "AP_TESE": 0.7726}, {"epoca": 12, "PRECISION": 0.7859, "RECALL": 0.8758, "F1": 0.8284, "AP_TESE": 0.8206}, {"epoca": 13, "PRECISION": 0.7493, "RECALL": 0.8987, "F1": 0.8172, "AP_TESE": 0.8382}, {"epoca": 14, "PRECISION": 0.8291, "RECALL": 0.8562, "F1": 0.8424, "AP_TESE": 0.8118}, {"epoca": 15, "PRECISION": 0.7836, "RECALL": 0.8758, "F1": 0.8272, "AP_TESE": 0.8165}, {"epoca": 16, "PRECISION": 0.7493, "RECALL": 0.8987, "F1": 0.8172, "AP_TESE": 0.834}, {"epoca": 17, "PRECISION": 0.819, "RECALL": 0.8431, "F1": 0.8309, "AP_TESE": 0.7983}, {"epoca": 18, "PRECISION": 0.7975, "RECALL": 0.8497, "F1": 0.8228, "AP_TESE": 0.8}, {"epoca": 19, "PRECISION": 0.8146, "RECALL": 0.8758, "F1": 0.8441, "AP_TESE": 0.8217}, {"epoca": 20, "PRECISION": 0.8024, "RECALL": 0.8627, "F1": 0.8315, "AP_TESE": 0.808}, {"epoca": 21, "PRECISION": 0.817, "RECALL": 0.8464, "F1": 0.8315, "AP_TESE": 0.7966}, {"epoca": 22, "PRECISION": 0.8106, "RECALL": 0.8529, "F1": 0.8312, "AP_TESE": 0.8038}, {"epoca": 23, "PRECISION": 0.8073, "RECALL": 0.8627, "F1": 0.8341, "AP_TESE": 0.8067}, {"epoca": 24, "PRECISION": 0.8079, "RECALL": 0.866, "F1": 0.836, "AP_TESE": 0.8144}, {"epoca": 25, "PRECISION": 0.8196, "RECALL": 0.8464, "F1": 0.8328, "AP_TESE": 0.8}, {"epoca": 26, "PRECISION": 0.8119, "RECALL": 0.8464, "F1": 0.8288, "AP_TESE": 0.799}, {"epoca": 27, "PRECISION": 0.8217, "RECALL": 0.8431, "F1": 0.8323, "AP_TESE": 0.7972}, {"epoca": 28, "PRECISION": 0.8232, "RECALL": 0.8366, "F1": 0.8298, "AP_TESE": 0.7893}, {"epoca": 29, "PRECISION": 0.8176, "RECALL": 0.8497, "F1": 0.8333, "AP_TESE": 0.8031}, {"epoca": 30, "PRECISION": 0.8187, "RECALL": 0.8562, "F1": 0.8371, "AP_TESE": 0.8083}]], "tempo_treino": 26.566666666666666, "tempo_busca": 139.77, "curvas": [], "resumo": {"PRECISION": {"media": 0.8571, "desvio": 0.0, "min": 0.8571, "max": 0.8571, "n": 1}, "RECALL": {"media": 0.8697, "desvio": 0.0, "min": 0.8697, "max": 0.8697, "n": 1}, "F1": {"media": 0.8634, "desvio": 0.0, "min": 0.8634, "max": 0.8634, "n": 1}, "AP_TESE": {"media": 0.8386, "desvio": 0.0, "min": 0.8386, "max": 0.8386, "n": 1}, "AP_VOC": {"media": 0.9338, "desvio": 0.0, "min": 0.9338, "max": 0.9338, "n": 1}, "AP50": {"media": 0.764, "desvio": 0.0, "min": 0.764, "max": 0.764, "n": 1}, "PREDICTIONS": {"media": 623.0, "desvio": 0.0, "min": 623.0, "max": 623.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": false, "rodadas_que_superam": 0}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.0026159960682001554, "momentum": 0.9185585731063599, "weight_decay": 0.0002902988766898052, "warmup_steps": 300, "grad_clip": 5.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.5, "focal_gamma": 2.0, "fg_iou": 0.4, "nms_thresh": 0.4, "merge_nms": 0.3}, "hiper_origem": "tabela", "nome": "wandbSementes", "rodada": "buscas e sementes", "sementes": true, "testes": [{"PRECISION": 0.8571, "RECALL": 0.8697, "F1": 0.8634, "AP_TESE": 0.8386, "AP_VOC": 0.9338, "AP50": 0.764, "F1_IOU50": 0.7728, "THRESHOLD": 0.5, "PREDICTIONS": 623.0, "GROUND_TRUTH": 614.0}, {"PRECISION": 0.8771, "RECALL": 0.8371, "F1": 0.8567, "AP_TESE": 0.8066, "AP_VOC": 0.926, "AP50": 0.7631, "F1_IOU50": 0.78, "THRESHOLD": 0.5, "PREDICTIONS": 586.0, "GROUND_TRUTH": 614.0}, {"PRECISION": 0.906, "RECALL": 0.816, "F1": 0.8586, "AP_TESE": 0.7922, "AP_VOC": 0.9327, "AP50": 0.7419, "F1_IOU50": 0.7575, "THRESHOLD": 0.5, "PREDICTIONS": 553.0, "GROUND_TRUTH": 614.0}, {"PRECISION": 0.8441, "RECALL": 0.873, "F1": 0.8583, "AP_TESE": 0.8351, "AP_VOC": 0.926, "AP50": 0.745, "F1_IOU50": 0.7542, "THRESHOLD": 0.5, "PREDICTIONS": 635.0, "GROUND_TRUTH": 614.0}, {"PRECISION": 0.9089, "RECALL": 0.7801, "F1": 0.8396, "AP_TESE": 0.7606, "AP_VOC": 0.928, "AP50": 0.7331, "F1_IOU50": 0.7432, "THRESHOLD": 0.5, "PREDICTIONS": 527.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.6261, "RECALL": 0.6895, "F1": 0.6563, "AP_TESE": 0.5798}, {"epoca": 2, "PRECISION": 0.6576, "RECALL": 0.8725, "F1": 0.75, "AP_TESE": 0.7715}, {"epoca": 3, "PRECISION": 0.6699, "RECALL": 0.8954, "F1": 0.7664, "AP_TESE": 0.8025}, {"epoca": 4, "PRECISION": 0.7507, "RECALL": 0.8954, "F1": 0.8167, "AP_TESE": 0.8198}, {"epoca": 5, "PRECISION": 0.8497, "RECALL": 0.7941, "F1": 0.8209, "AP_TESE": 0.7429}, {"epoca": 6, "PRECISION": 0.7615, "RECALL": 0.866, "F1": 0.8104, "AP_TESE": 0.8066}, {"epoca": 7, "PRECISION": 0.7644, "RECALL": 0.8693, "F1": 0.8135, "AP_TESE": 0.7975}, {"epoca": 8, "PRECISION": 0.8049, "RECALL": 0.8627, "F1": 0.8328, "AP_TESE": 0.811}, {"epoca": 9, "PRECISION": 0.8272, "RECALL": 0.8137, "F1": 0.8204, "AP_TESE": 0.7663}, {"epoca": 10, "PRECISION": 0.8111, "RECALL": 0.8562, "F1": 0.8331, "AP_TESE": 0.8041}, {"epoca": 11, "PRECISION": 0.8251, "RECALL": 0.817, "F1": 0.821, "AP_TESE": 0.7726}, {"epoca": 12, "PRECISION": 0.7859, "RECALL": 0.8758, "F1": 0.8284, "AP_TESE": 0.8206}, {"epoca": 13, "PRECISION": 0.7493, "RECALL": 0.8987, "F1": 0.8172, "AP_TESE": 0.8382}, {"epoca": 14, "PRECISION": 0.8291, "RECALL": 0.8562, "F1": 0.8424, "AP_TESE": 0.8118}, {"epoca": 15, "PRECISION": 0.7836, "RECALL": 0.8758, "F1": 0.8272, "AP_TESE": 0.8165}, {"epoca": 16, "PRECISION": 0.7493, "RECALL": 0.8987, "F1": 0.8172, "AP_TESE": 0.834}, {"epoca": 17, "PRECISION": 0.819, "RECALL": 0.8431, "F1": 0.8309, "AP_TESE": 0.7983}, {"epoca": 18, "PRECISION": 0.7975, "RECALL": 0.8497, "F1": 0.8228, "AP_TESE": 0.8}, {"epoca": 19, "PRECISION": 0.8146, "RECALL": 0.8758, "F1": 0.8441, "AP_TESE": 0.8217}, {"epoca": 20, "PRECISION": 0.8024, "RECALL": 0.8627, "F1": 0.8315, "AP_TESE": 0.808}, {"epoca": 21, "PRECISION": 0.817, "RECALL": 0.8464, "F1": 0.8315, "AP_TESE": 0.7966}, {"epoca": 22, "PRECISION": 0.8106, "RECALL": 0.8529, "F1": 0.8312, "AP_TESE": 0.8038}, {"epoca": 23, "PRECISION": 0.8073, "RECALL": 0.8627, "F1": 0.8341, "AP_TESE": 0.8067}, {"epoca": 24, "PRECISION": 0.8079, "RECALL": 0.866, "F1": 0.836, "AP_TESE": 0.8144}, {"epoca": 25, "PRECISION": 0.8196, "RECALL": 0.8464, "F1": 0.8328, "AP_TESE": 0.8}, {"epoca": 26, "PRECISION": 0.8119, "RECALL": 0.8464, "F1": 0.8288, "AP_TESE": 0.799}, {"epoca": 27, "PRECISION": 0.8217, "RECALL": 0.8431, "F1": 0.8323, "AP_TESE": 0.7972}, {"epoca": 28, "PRECISION": 0.8232, "RECALL": 0.8366, "F1": 0.8298, "AP_TESE": 0.7893}, {"epoca": 29, "PRECISION": 0.8176, "RECALL": 0.8497, "F1": 0.8333, "AP_TESE": 0.8031}, {"epoca": 30, "PRECISION": 0.8187, "RECALL": 0.8562, "F1": 0.8371, "AP_TESE": 0.8083}], [{"epoca": 1, "PRECISION": 0.4365, "RECALL": 0.7974, "F1": 0.5642, "AP_TESE": 0.6332}, {"epoca": 2, "PRECISION": 0.6849, "RECALL": 0.8595, "F1": 0.7623, "AP_TESE": 0.7833}, {"epoca": 3, "PRECISION": 0.7354, "RECALL": 0.8627, "F1": 0.794, "AP_TESE": 0.7843}, {"epoca": 4, "PRECISION": 0.8493, "RECALL": 0.7549, "F1": 0.7993, "AP_TESE": 0.7111}, {"epoca": 5, "PRECISION": 0.8871, "RECALL": 0.719, "F1": 0.7942, "AP_TESE": 0.686}, {"epoca": 6, "PRECISION": 0.8824, "RECALL": 0.7353, "F1": 0.8021, "AP_TESE": 0.6935}, {"epoca": 7, "PRECISION": 0.8119, "RECALL": 0.8039, "F1": 0.8079, "AP_TESE": 0.7481}, {"epoca": 8, "PRECISION": 0.8722, "RECALL": 0.7582, "F1": 0.8112, "AP_TESE": 0.7152}, {"epoca": 9, "PRECISION": 0.8425, "RECALL": 0.7516, "F1": 0.7945, "AP_TESE": 0.7151}, {"epoca": 10, "PRECISION": 0.8176, "RECALL": 0.8791, "F1": 0.8472, "AP_TESE": 0.8282}, {"epoca": 11, "PRECISION": 0.8344, "RECALL": 0.8399, "F1": 0.8371, "AP_TESE": 0.7921}, {"epoca": 12, "PRECISION": 0.8533, "RECALL": 0.7222, "F1": 0.7823, "AP_TESE": 0.6851}, {"epoca": 13, "PRECISION": 0.8561, "RECALL": 0.7974, "F1": 0.8257, "AP_TESE": 0.7599}, {"epoca": 14, "PRECISION": 0.8139, "RECALL": 0.8431, "F1": 0.8283, "AP_TESE": 0.7959}, {"epoca": 15, "PRECISION": 0.7746, "RECALL": 0.8758, "F1": 0.8221, "AP_TESE": 0.8156}, {"epoca": 16, "PRECISION": 0.8107, "RECALL": 0.8399, "F1": 0.825, "AP_TESE": 0.7931}, {"epoca": 17, "PRECISION": 0.8503, "RECALL": 0.817, "F1": 0.8333, "AP_TESE": 0.7783}, {"epoca": 18, "PRECISION": 0.8317, "RECALL": 0.8235, "F1": 0.8276, "AP_TESE": 0.7808}, {"epoca": 19, "PRECISION": 0.81, "RECALL": 0.8497, "F1": 0.8293, "AP_TESE": 0.7932}, {"epoca": 20, "PRECISION": 0.8312, "RECALL": 0.8366, "F1": 0.8339, "AP_TESE": 0.7908}, {"epoca": 21, "PRECISION": 0.8264, "RECALL": 0.8399, "F1": 0.8331, "AP_TESE": 0.7933}, {"epoca": 22, "PRECISION": 0.8187, "RECALL": 0.8562, "F1": 0.8371, "AP_TESE": 0.8083}, {"epoca": 23, "PRECISION": 0.8217, "RECALL": 0.8431, "F1": 0.8323, "AP_TESE": 0.7994}, {"epoca": 24, "PRECISION": 0.8137, "RECALL": 0.8562, "F1": 0.8344, "AP_TESE": 0.8082}, {"epoca": 25, "PRECISION": 0.8317, "RECALL": 0.8399, "F1": 0.8358, "AP_TESE": 0.7966}, {"epoca": 26, "PRECISION": 0.8248, "RECALL": 0.8464, "F1": 0.8355, "AP_TESE": 0.8019}, {"epoca": 27, "PRECISION": 0.8312, "RECALL": 0.8366, "F1": 0.8339, "AP_TESE": 0.7949}, {"epoca": 28, "PRECISION": 0.8361, "RECALL": 0.8333, "F1": 0.8347, "AP_TESE": 0.7937}, {"epoca": 29, "PRECISION": 0.8285, "RECALL": 0.8366, "F1": 0.8325, "AP_TESE": 0.794}, {"epoca": 30, "PRECISION": 0.8284, "RECALL": 0.8203, "F1": 0.8243, "AP_TESE": 0.7816}], [{"epoca": 1, "PRECISION": 0.6392, "RECALL": 0.7353, "F1": 0.6839, "AP_TESE": 0.6418}, {"epoca": 2, "PRECISION": 0.81, "RECALL": 0.7941, "F1": 0.802, "AP_TESE": 0.7239}, {"epoca": 3, "PRECISION": 0.8596, "RECALL": 0.6405, "F1": 0.7341, "AP_TESE": 0.5949}, {"epoca": 4, "PRECISION": 0.8852, "RECALL": 0.7059, "F1": 0.7855, "AP_TESE": 0.6656}, {"epoca": 5, "PRECISION": 0.8158, "RECALL": 0.8105, "F1": 0.8131, "AP_TESE": 0.7525}, {"epoca": 6, "PRECISION": 0.7668, "RECALL": 0.8595, "F1": 0.8105, "AP_TESE": 0.7922}, {"epoca": 7, "PRECISION": 0.8057, "RECALL": 0.8268, "F1": 0.8161, "AP_TESE": 0.7592}, {"epoca": 8, "PRECISION": 0.8532, "RECALL": 0.817, "F1": 0.8347, "AP_TESE": 0.7697}, {"epoca": 9, "PRECISION": 0.7975, "RECALL": 0.8235, "F1": 0.8103, "AP_TESE": 0.7694}, {"epoca": 10, "PRECISION": 0.8481, "RECALL": 0.7843, "F1": 0.8149, "AP_TESE": 0.744}, {"epoca": 11, "PRECISION": 0.8344, "RECALL": 0.8399, "F1": 0.8371, "AP_TESE": 0.7902}, {"epoca": 12, "PRECISION": 0.871, "RECALL": 0.7059, "F1": 0.7798, "AP_TESE": 0.6735}, {"epoca": 13, "PRECISION": 0.8188, "RECALL": 0.8268, "F1": 0.8228, "AP_TESE": 0.7709}, {"epoca": 14, "PRECISION": 0.8511, "RECALL": 0.7843, "F1": 0.8163, "AP_TESE": 0.7397}, {"epoca": 15, "PRECISION": 0.8384, "RECALL": 0.8137, "F1": 0.8259, "AP_TESE": 0.772}, {"epoca": 16, "PRECISION": 0.8411, "RECALL": 0.8301, "F1": 0.8355, "AP_TESE": 0.7847}, {"epoca": 17, "PRECISION": 0.8179, "RECALL": 0.8366, "F1": 0.8271, "AP_TESE": 0.7911}, {"epoca": 18, "PRECISION": 0.8547, "RECALL": 0.8072, "F1": 0.8303, "AP_TESE": 0.7653}, {"epoca": 19, "PRECISION": 0.8617, "RECALL": 0.7941, "F1": 0.8265, "AP_TESE": 0.7608}, {"epoca": 20, "PRECISION": 0.8571, "RECALL": 0.8039, "F1": 0.8297, "AP_TESE": 0.7651}, {"epoca": 21, "PRECISION": 0.8454, "RECALL": 0.8399, "F1": 0.8426, "AP_TESE": 0.7949}, {"epoca": 22, "PRECISION": 0.8736, "RECALL": 0.7908, "F1": 0.8302, "AP_TESE": 0.7509}, {"epoca": 23, "PRECISION": 0.8475, "RECALL": 0.817, "F1": 0.8319, "AP_TESE": 0.7741}, {"epoca": 24, "PRECISION": 0.8393, "RECALL": 0.8366, "F1": 0.838, "AP_TESE": 0.7953}, {"epoca": 25, "PRECISION": 0.8366, "RECALL": 0.8366, "F1": 0.8366, "AP_TESE": 0.7929}, {"epoca": 26, "PRECISION": 0.8339, "RECALL": 0.8366, "F1": 0.8352, "AP_TESE": 0.7911}, {"epoca": 27, "PRECISION": 0.8333, "RECALL": 0.8333, "F1": 0.8333, "AP_TESE": 0.7904}, {"epoca": 28, "PRECISION": 0.8371, "RECALL": 0.8399, "F1": 0.8385, "AP_TESE": 0.7975}, {"epoca": 29, "PRECISION": 0.8317, "RECALL": 0.8399, "F1": 0.8358, "AP_TESE": 0.7941}, {"epoca": 30, "PRECISION": 0.8366, "RECALL": 0.8366, "F1": 0.8366, "AP_TESE": 0.7915}], [{"epoca": 1, "PRECISION": 0.2723, "RECALL": 0.9183, "F1": 0.42, "AP_TESE": 0.5597}, {"epoca": 2, "PRECISION": 0.856, "RECALL": 0.719, "F1": 0.7815, "AP_TESE": 0.6583}, {"epoca": 3, "PRECISION": 0.7806, "RECALL": 0.8137, "F1": 0.7968, "AP_TESE": 0.7426}, {"epoca": 4, "PRECISION": 0.7418, "RECALL": 0.8824, "F1": 0.806, "AP_TESE": 0.7978}, {"epoca": 5, "PRECISION": 0.7778, "RECALL": 0.8007, "F1": 0.789, "AP_TESE": 0.7271}, {"epoca": 6, "PRECISION": 0.8561, "RECALL": 0.7386, "F1": 0.793, "AP_TESE": 0.6871}, {"epoca": 7, "PRECISION": 0.8345, "RECALL": 0.7908, "F1": 0.8121, "AP_TESE": 0.7415}, {"epoca": 8, "PRECISION": 0.8856, "RECALL": 0.683, "F1": 0.7712, "AP_TESE": 0.6468}, {"epoca": 9, "PRECISION": 0.8764, "RECALL": 0.7647, "F1": 0.8168, "AP_TESE": 0.7236}, {"epoca": 10, "PRECISION": 0.8403, "RECALL": 0.7908, "F1": 0.8148, "AP_TESE": 0.745}, {"epoca": 11, "PRECISION": 0.8947, "RECALL": 0.7222, "F1": 0.7993, "AP_TESE": 0.6898}, {"epoca": 12, "PRECISION": 0.7969, "RECALL": 0.8333, "F1": 0.8147, "AP_TESE": 0.784}, {"epoca": 13, "PRECISION": 0.8582, "RECALL": 0.7712, "F1": 0.8124, "AP_TESE": 0.7345}, {"epoca": 14, "PRECISION": 0.8322, "RECALL": 0.7941, "F1": 0.8127, "AP_TESE": 0.749}, {"epoca": 15, "PRECISION": 0.7814, "RECALL": 0.8529, "F1": 0.8156, "AP_TESE": 0.7944}, {"epoca": 16, "PRECISION": 0.783, "RECALL": 0.8725, "F1": 0.8253, "AP_TESE": 0.8159}, {"epoca": 17, "PRECISION": 0.8798, "RECALL": 0.7418, "F1": 0.805, "AP_TESE": 0.7054}, {"epoca": 18, "PRECISION": 0.8484, "RECALL": 0.768, "F1": 0.8062, "AP_TESE": 0.7297}, {"epoca": 19, "PRECISION": 0.854, "RECALL": 0.7647, "F1": 0.8069, "AP_TESE": 0.7295}, {"epoca": 20, "PRECISION": 0.8295, "RECALL": 0.8268, "F1": 0.8282, "AP_TESE": 0.7827}, {"epoca": 21, "PRECISION": 0.8613, "RECALL": 0.7712, "F1": 0.8138, "AP_TESE": 0.7354}, {"epoca": 22, "PRECISION": 0.8377, "RECALL": 0.8268, "F1": 0.8322, "AP_TESE": 0.7814}, {"epoca": 23, "PRECISION": 0.8393, "RECALL": 0.8366, "F1": 0.838, "AP_TESE": 0.7909}, {"epoca": 24, "PRECISION": 0.8448, "RECALL": 0.8007, "F1": 0.8221, "AP_TESE": 0.7582}, {"epoca": 25, "PRECISION": 0.8507, "RECALL": 0.8007, "F1": 0.8249, "AP_TESE": 0.7574}, {"epoca": 26, "PRECISION": 0.8403, "RECALL": 0.7908, "F1": 0.8148, "AP_TESE": 0.7511}, {"epoca": 27, "PRECISION": 0.8418, "RECALL": 0.817, "F1": 0.8292, "AP_TESE": 0.775}, {"epoca": 28, "PRECISION": 0.8396, "RECALL": 0.8039, "F1": 0.8214, "AP_TESE": 0.7621}, {"epoca": 29, "PRECISION": 0.8607, "RECALL": 0.7876, "F1": 0.8225, "AP_TESE": 0.7497}, {"epoca": 30, "PRECISION": 0.8497, "RECALL": 0.7941, "F1": 0.8209, "AP_TESE": 0.7557}], [{"epoca": 1, "PRECISION": 0.3525, "RECALL": 0.9412, "F1": 0.5129, "AP_TESE": 0.6788}, {"epoca": 2, "PRECISION": 0.7867, "RECALL": 0.7353, "F1": 0.7601, "AP_TESE": 0.6586}, {"epoca": 3, "PRECISION": 0.8158, "RECALL": 0.8105, "F1": 0.8131, "AP_TESE": 0.7429}, {"epoca": 4, "PRECISION": 0.847, "RECALL": 0.7418, "F1": 0.7909, "AP_TESE": 0.6941}, {"epoca": 5, "PRECISION": 0.863, "RECALL": 0.7614, "F1": 0.809, "AP_TESE": 0.7293}, {"epoca": 6, "PRECISION": 0.8929, "RECALL": 0.6536, "F1": 0.7547, "AP_TESE": 0.6183}, {"epoca": 7, "PRECISION": 0.8741, "RECALL": 0.7941, "F1": 0.8322, "AP_TESE": 0.7531}, {"epoca": 8, "PRECISION": 0.8407, "RECALL": 0.8105, "F1": 0.8253, "AP_TESE": 0.7657}, {"epoca": 9, "PRECISION": 0.8173, "RECALL": 0.8333, "F1": 0.8252, "AP_TESE": 0.7814}, {"epoca": 10, "PRECISION": 0.8173, "RECALL": 0.8333, "F1": 0.8252, "AP_TESE": 0.7887}, {"epoca": 11, "PRECISION": 0.8365, "RECALL": 0.8529, "F1": 0.8447, "AP_TESE": 0.8132}, {"epoca": 12, "PRECISION": 0.8706, "RECALL": 0.8137, "F1": 0.8412, "AP_TESE": 0.7808}, {"epoca": 13, "PRECISION": 0.8705, "RECALL": 0.7908, "F1": 0.8288, "AP_TESE": 0.7532}, {"epoca": 14, "PRECISION": 0.817, "RECALL": 0.8464, "F1": 0.8315, "AP_TESE": 0.8011}, {"epoca": 15, "PRECISION": 0.8777, "RECALL": 0.7974, "F1": 0.8356, "AP_TESE": 0.7617}, {"epoca": 16, "PRECISION": 0.8819, "RECALL": 0.732, "F1": 0.8, "AP_TESE": 0.7021}, {"epoca": 17, "PRECISION": 0.8176, "RECALL": 0.8497, "F1": 0.8333, "AP_TESE": 0.8032}, {"epoca": 18, "PRECISION": 0.8196, "RECALL": 0.8464, "F1": 0.8328, "AP_TESE": 0.803}, {"epoca": 19, "PRECISION": 0.8333, "RECALL": 0.817, "F1": 0.8251, "AP_TESE": 0.77}, {"epoca": 20, "PRECISION": 0.835, "RECALL": 0.8431, "F1": 0.839, "AP_TESE": 0.7951}, {"epoca": 21, "PRECISION": 0.8412, "RECALL": 0.8137, "F1": 0.8272, "AP_TESE": 0.7694}, {"epoca": 22, "PRECISION": 0.8464, "RECALL": 0.7745, "F1": 0.8089, "AP_TESE": 0.7386}, {"epoca": 23, "PRECISION": 0.8514, "RECALL": 0.8235, "F1": 0.8372, "AP_TESE": 0.7786}, {"epoca": 24, "PRECISION": 0.8552, "RECALL": 0.8301, "F1": 0.8425, "AP_TESE": 0.788}, {"epoca": 25, "PRECISION": 0.8383, "RECALL": 0.8301, "F1": 0.8342, "AP_TESE": 0.7835}, {"epoca": 26, "PRECISION": 0.8423, "RECALL": 0.8203, "F1": 0.8311, "AP_TESE": 0.7769}, {"epoca": 27, "PRECISION": 0.8456, "RECALL": 0.8235, "F1": 0.8344, "AP_TESE": 0.7755}, {"epoca": 28, "PRECISION": 0.8522, "RECALL": 0.8105, "F1": 0.8308, "AP_TESE": 0.7696}, {"epoca": 29, "PRECISION": 0.849, "RECALL": 0.8268, "F1": 0.8377, "AP_TESE": 0.7818}, {"epoca": 30, "PRECISION": 0.8462, "RECALL": 0.8268, "F1": 0.8364, "AP_TESE": 0.7813}]], "tempo_treino": 26.268333333333334, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.87864, "desvio": 0.028825301386108733, "min": 0.8441, "max": 0.9089, "n": 5}, "RECALL": {"media": 0.83518, "desvio": 0.0388179984028028, "min": 0.7801, "max": 0.873, "n": 5}, "F1": {"media": 0.85532, "desvio": 0.009137122085208211, "min": 0.8396, "max": 0.8634, "n": 5}, "AP_TESE": {"media": 0.80662, "desvio": 0.03224751153189961, "min": 0.7606, "max": 0.8386, "n": 5}, "AP_VOC": {"media": 0.9293, "desvio": 0.0037175260590881797, "min": 0.926, "max": 0.9338, "n": 5}, "AP50": {"media": 0.74942, "desvio": 0.013621196716882122, "min": 0.7331, "max": 0.764, "n": 5}, "PREDICTIONS": {"media": 584.8, "desvio": 45.64208584190692, "min": 527.0, "max": 635.0, "n": 5}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 5}}, "supera_media": false, "rodadas_que_superam": 0}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.01, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "altoLearningRate", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9355, "RECALL": 0.6612, "F1": 0.7748, "AP_TESE": 0.6431, "AP_VOC": 0.924, "AP50": 0.7599, "F1_IOU50": 0.6908, "THRESHOLD": 0.5, "PREDICTIONS": 434.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.9091, "RECALL": 0.2941, "F1": 0.4444, "AP_TESE": 0.2716}, {"epoca": 2, "PRECISION": 0.8775, "RECALL": 0.585, "F1": 0.702, "AP_TESE": 0.5501}, {"epoca": 3, "PRECISION": 0.9167, "RECALL": 0.1438, "F1": 0.2486, "AP_TESE": 0.1348}, {"epoca": 4, "PRECISION": 0.94, "RECALL": 0.4608, "F1": 0.6184, "AP_TESE": 0.4374}, {"epoca": 5, "PRECISION": 0.9398, "RECALL": 0.4085, "F1": 0.5695, "AP_TESE": 0.3869}, {"epoca": 6, "PRECISION": 0.9206, "RECALL": 0.5686, "F1": 0.703, "AP_TESE": 0.5412}, {"epoca": 7, "PRECISION": 0.9542, "RECALL": 0.4085, "F1": 0.5721, "AP_TESE": 0.3978}, {"epoca": 8, "PRECISION": 0.9217, "RECALL": 0.5, "F1": 0.6483, "AP_TESE": 0.4793}, {"epoca": 9, "PRECISION": 0.9379, "RECALL": 0.5425, "F1": 0.6874, "AP_TESE": 0.5191}, {"epoca": 10, "PRECISION": 0.9126, "RECALL": 0.5458, "F1": 0.683, "AP_TESE": 0.5122}, {"epoca": 11, "PRECISION": 0.95, "RECALL": 0.3725, "F1": 0.5352, "AP_TESE": 0.3606}, {"epoca": 12, "PRECISION": 0.9312, "RECALL": 0.5752, "F1": 0.7111, "AP_TESE": 0.5517}, {"epoca": 13, "PRECISION": 0.9077, "RECALL": 0.5784, "F1": 0.7066, "AP_TESE": 0.5537}, {"epoca": 14, "PRECISION": 0.9274, "RECALL": 0.5425, "F1": 0.6845, "AP_TESE": 0.5267}, {"epoca": 15, "PRECISION": 0.9202, "RECALL": 0.5654, "F1": 0.7004, "AP_TESE": 0.5452}, {"epoca": 16, "PRECISION": 0.958, "RECALL": 0.4477, "F1": 0.6102, "AP_TESE": 0.4378}, {"epoca": 17, "PRECISION": 0.9167, "RECALL": 0.6471, "F1": 0.7586, "AP_TESE": 0.6228}, {"epoca": 18, "PRECISION": 0.9259, "RECALL": 0.5719, "F1": 0.7071, "AP_TESE": 0.5514}, {"epoca": 19, "PRECISION": 0.9222, "RECALL": 0.5425, "F1": 0.6831, "AP_TESE": 0.5236}, {"epoca": 20, "PRECISION": 0.9155, "RECALL": 0.6373, "F1": 0.7514, "AP_TESE": 0.6103}, {"epoca": 21, "PRECISION": 0.9243, "RECALL": 0.5588, "F1": 0.6965, "AP_TESE": 0.5393}, {"epoca": 22, "PRECISION": 0.9048, "RECALL": 0.5588, "F1": 0.6909, "AP_TESE": 0.5398}, {"epoca": 23, "PRECISION": 0.9222, "RECALL": 0.5425, "F1": 0.6831, "AP_TESE": 0.5258}, {"epoca": 24, "PRECISION": 0.9286, "RECALL": 0.5948, "F1": 0.7251, "AP_TESE": 0.5725}, {"epoca": 25, "PRECISION": 0.9286, "RECALL": 0.5523, "F1": 0.6926, "AP_TESE": 0.5343}, {"epoca": 26, "PRECISION": 0.9227, "RECALL": 0.5458, "F1": 0.6858, "AP_TESE": 0.5295}, {"epoca": 27, "PRECISION": 0.9115, "RECALL": 0.5719, "F1": 0.7028, "AP_TESE": 0.5496}, {"epoca": 28, "PRECISION": 0.9144, "RECALL": 0.5588, "F1": 0.6937, "AP_TESE": 0.5418}, {"epoca": 29, "PRECISION": 0.9167, "RECALL": 0.5752, "F1": 0.7068, "AP_TESE": 0.5569}, {"epoca": 30, "PRECISION": 0.9153, "RECALL": 0.5654, "F1": 0.699, "AP_TESE": 0.5479}]], "tempo_treino": 27.34, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9355, "desvio": 0.0, "min": 0.9355, "max": 0.9355, "n": 1}, "RECALL": {"media": 0.6612, "desvio": 0.0, "min": 0.6612, "max": 0.6612, "n": 1}, "F1": {"media": 0.7748, "desvio": 0.0, "min": 0.7748, "max": 0.7748, "n": 1}, "AP_TESE": {"media": 0.6431, "desvio": 0.0, "min": 0.6431, "max": 0.6431, "n": 1}, "AP_VOC": {"media": 0.924, "desvio": 0.0, "min": 0.924, "max": 0.924, "n": 1}, "AP50": {"media": 0.7599, "desvio": 0.0, "min": 0.7599, "max": 0.7599, "n": 1}, "PREDICTIONS": {"media": 434.0, "desvio": 0.0, "min": 434.0, "max": 434.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.0025, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "baixoLearningRate", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9184, "RECALL": 0.6417, "F1": 0.7555, "AP_TESE": 0.6223, "AP_VOC": 0.9073, "AP50": 0.7699, "F1_IOU50": 0.6942, "THRESHOLD": 0.5, "PREDICTIONS": 429.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.8427, "RECALL": 0.2451, "F1": 0.3797, "AP_TESE": 0.2204}, {"epoca": 2, "PRECISION": 0.9055, "RECALL": 0.3758, "F1": 0.5312, "AP_TESE": 0.3413}, {"epoca": 3, "PRECISION": 0.9167, "RECALL": 0.0719, "F1": 0.1333, "AP_TESE": 0.0658}, {"epoca": 4, "PRECISION": 0.9474, "RECALL": 0.5294, "F1": 0.6792, "AP_TESE": 0.5024}, {"epoca": 5, "PRECISION": 0.9286, "RECALL": 0.3824, "F1": 0.5417, "AP_TESE": 0.3647}, {"epoca": 6, "PRECISION": 0.8774, "RECALL": 0.7484, "F1": 0.8078, "AP_TESE": 0.6955}, {"epoca": 7, "PRECISION": 0.9318, "RECALL": 0.5359, "F1": 0.6805, "AP_TESE": 0.504}, {"epoca": 8, "PRECISION": 0.9655, "RECALL": 0.2745, "F1": 0.4275, "AP_TESE": 0.2692}, {"epoca": 9, "PRECISION": 0.9313, "RECALL": 0.4869, "F1": 0.6395, "AP_TESE": 0.4623}, {"epoca": 10, "PRECISION": 0.9415, "RECALL": 0.5784, "F1": 0.7166, "AP_TESE": 0.559}, {"epoca": 11, "PRECISION": 0.9341, "RECALL": 0.5556, "F1": 0.6967, "AP_TESE": 0.5329}, {"epoca": 12, "PRECISION": 0.91, "RECALL": 0.6275, "F1": 0.7427, "AP_TESE": 0.5974}, {"epoca": 13, "PRECISION": 0.9503, "RECALL": 0.5, "F1": 0.6552, "AP_TESE": 0.4861}, {"epoca": 14, "PRECISION": 0.9104, "RECALL": 0.598, "F1": 0.7219, "AP_TESE": 0.5681}, {"epoca": 15, "PRECISION": 0.9371, "RECALL": 0.5359, "F1": 0.6819, "AP_TESE": 0.5197}, {"epoca": 16, "PRECISION": 0.9218, "RECALL": 0.5392, "F1": 0.6804, "AP_TESE": 0.5188}, {"epoca": 17, "PRECISION": 0.9167, "RECALL": 0.5033, "F1": 0.6498, "AP_TESE": 0.483}, {"epoca": 18, "PRECISION": 0.9004, "RECALL": 0.6797, "F1": 0.7747, "AP_TESE": 0.6448}, {"epoca": 19, "PRECISION": 0.9159, "RECALL": 0.6405, "F1": 0.7538, "AP_TESE": 0.6187}, {"epoca": 20, "PRECISION": 0.9104, "RECALL": 0.6307, "F1": 0.7452, "AP_TESE": 0.6061}, {"epoca": 21, "PRECISION": 0.9202, "RECALL": 0.6405, "F1": 0.7553, "AP_TESE": 0.614}, {"epoca": 22, "PRECISION": 0.9192, "RECALL": 0.5948, "F1": 0.7222, "AP_TESE": 0.5752}, {"epoca": 23, "PRECISION": 0.9242, "RECALL": 0.598, "F1": 0.7262, "AP_TESE": 0.5776}, {"epoca": 24, "PRECISION": 0.9091, "RECALL": 0.6536, "F1": 0.7605, "AP_TESE": 0.6255}, {"epoca": 25, "PRECISION": 0.9257, "RECALL": 0.6111, "F1": 0.7362, "AP_TESE": 0.5936}, {"epoca": 26, "PRECISION": 0.9286, "RECALL": 0.5948, "F1": 0.7251, "AP_TESE": 0.579}, {"epoca": 27, "PRECISION": 0.9286, "RECALL": 0.5948, "F1": 0.7251, "AP_TESE": 0.5786}, {"epoca": 28, "PRECISION": 0.9254, "RECALL": 0.6078, "F1": 0.7337, "AP_TESE": 0.5869}, {"epoca": 29, "PRECISION": 0.9242, "RECALL": 0.598, "F1": 0.7262, "AP_TESE": 0.5798}, {"epoca": 30, "PRECISION": 0.9242, "RECALL": 0.598, "F1": 0.7262, "AP_TESE": 0.5793}]], "tempo_treino": 27.0, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9184, "desvio": 0.0, "min": 0.9184, "max": 0.9184, "n": 1}, "RECALL": {"media": 0.6417, "desvio": 0.0, "min": 0.6417, "max": 0.6417, "n": 1}, "F1": {"media": 0.7555, "desvio": 0.0, "min": 0.7555, "max": 0.7555, "n": 1}, "AP_TESE": {"media": 0.6223, "desvio": 0.0, "min": 0.6223, "max": 0.6223, "n": 1}, "AP_VOC": {"media": 0.9073, "desvio": 0.0, "min": 0.9073, "max": 0.9073, "n": 1}, "AP50": {"media": 0.7699, "desvio": 0.0, "min": 0.7699, "max": 0.7699, "n": 1}, "PREDICTIONS": {"media": 429.0, "desvio": 0.0, "min": 429.0, "max": 429.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": false, "rodadas_que_superam": 0}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 40, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "altoEpochs", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9426, "RECALL": 0.6156, "F1": 0.7448, "AP_TESE": 0.6053, "AP_VOC": 0.9265, "AP50": 0.7633, "F1_IOU50": 0.666, "THRESHOLD": 0.5, "PREDICTIONS": 401.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.9318, "RECALL": 0.134, "F1": 0.2343, "AP_TESE": 0.1268}, {"epoca": 2, "PRECISION": 0.9225, "RECALL": 0.3889, "F1": 0.5471, "AP_TESE": 0.3628}, {"epoca": 3, "PRECISION": 0.9459, "RECALL": 0.1144, "F1": 0.2041, "AP_TESE": 0.1088}, {"epoca": 4, "PRECISION": 0.9357, "RECALL": 0.4281, "F1": 0.5874, "AP_TESE": 0.4091}, {"epoca": 5, "PRECISION": 0.9143, "RECALL": 0.4183, "F1": 0.574, "AP_TESE": 0.3929}, {"epoca": 6, "PRECISION": 0.9251, "RECALL": 0.5654, "F1": 0.7018, "AP_TESE": 0.5391}, {"epoca": 7, "PRECISION": 0.9636, "RECALL": 0.3464, "F1": 0.5096, "AP_TESE": 0.338}, {"epoca": 8, "PRECISION": 0.9508, "RECALL": 0.1895, "F1": 0.3161, "AP_TESE": 0.1828}, {"epoca": 9, "PRECISION": 0.9293, "RECALL": 0.5588, "F1": 0.698, "AP_TESE": 0.5381}, {"epoca": 10, "PRECISION": 0.9574, "RECALL": 0.2941, "F1": 0.45, "AP_TESE": 0.288}, {"epoca": 11, "PRECISION": 0.9243, "RECALL": 0.5588, "F1": 0.6965, "AP_TESE": 0.5326}, {"epoca": 12, "PRECISION": 0.9371, "RECALL": 0.4869, "F1": 0.6409, "AP_TESE": 0.4721}, {"epoca": 13, "PRECISION": 0.9484, "RECALL": 0.4804, "F1": 0.6377, "AP_TESE": 0.4669}, {"epoca": 14, "PRECISION": 0.9278, "RECALL": 0.5882, "F1": 0.72, "AP_TESE": 0.5701}, {"epoca": 15, "PRECISION": 0.9618, "RECALL": 0.4118, "F1": 0.5767, "AP_TESE": 0.3974}, {"epoca": 16, "PRECISION": 0.9143, "RECALL": 0.6275, "F1": 0.7442, "AP_TESE": 0.5923}, {"epoca": 17, "PRECISION": 0.9636, "RECALL": 0.5196, "F1": 0.6752, "AP_TESE": 0.5095}, {"epoca": 18, "PRECISION": 0.9371, "RECALL": 0.5359, "F1": 0.6819, "AP_TESE": 0.5184}, {"epoca": 19, "PRECISION": 0.9175, "RECALL": 0.6176, "F1": 0.7383, "AP_TESE": 0.593}, {"epoca": 20, "PRECISION": 0.9009, "RECALL": 0.6536, "F1": 0.7576, "AP_TESE": 0.6245}, {"epoca": 21, "PRECISION": 0.9083, "RECALL": 0.6797, "F1": 0.7776, "AP_TESE": 0.6533}, {"epoca": 22, "PRECISION": 0.914, "RECALL": 0.6601, "F1": 0.7666, "AP_TESE": 0.6319}, {"epoca": 23, "PRECISION": 0.9378, "RECALL": 0.5915, "F1": 0.7255, "AP_TESE": 0.5761}, {"epoca": 24, "PRECISION": 0.9379, "RECALL": 0.5425, "F1": 0.6874, "AP_TESE": 0.5248}, {"epoca": 25, "PRECISION": 0.9451, "RECALL": 0.5065, "F1": 0.6596, "AP_TESE": 0.488}, {"epoca": 26, "PRECISION": 0.9512, "RECALL": 0.5098, "F1": 0.6638, "AP_TESE": 0.4981}, {"epoca": 27, "PRECISION": 0.9483, "RECALL": 0.5392, "F1": 0.6875, "AP_TESE": 0.5249}, {"epoca": 28, "PRECISION": 0.9524, "RECALL": 0.5229, "F1": 0.6751, "AP_TESE": 0.5109}, {"epoca": 29, "PRECISION": 0.9402, "RECALL": 0.5654, "F1": 0.7061, "AP_TESE": 0.5522}, {"epoca": 30, "PRECISION": 0.9032, "RECALL": 0.6405, "F1": 0.7495, "AP_TESE": 0.6167}, {"epoca": 31, "PRECISION": 0.9314, "RECALL": 0.6209, "F1": 0.7451, "AP_TESE": 0.6001}, {"epoca": 32, "PRECISION": 0.9159, "RECALL": 0.6405, "F1": 0.7538, "AP_TESE": 0.6183}, {"epoca": 33, "PRECISION": 0.9314, "RECALL": 0.6209, "F1": 0.7451, "AP_TESE": 0.5988}, {"epoca": 34, "PRECISION": 0.9058, "RECALL": 0.6601, "F1": 0.7637, "AP_TESE": 0.6365}, {"epoca": 35, "PRECISION": 0.9249, "RECALL": 0.6438, "F1": 0.7592, "AP_TESE": 0.6199}, {"epoca": 36, "PRECISION": 0.9266, "RECALL": 0.6601, "F1": 0.771, "AP_TESE": 0.6343}, {"epoca": 37, "PRECISION": 0.9303, "RECALL": 0.6111, "F1": 0.7377, "AP_TESE": 0.595}, {"epoca": 38, "PRECISION": 0.919, "RECALL": 0.6307, "F1": 0.7481, "AP_TESE": 0.6126}, {"epoca": 39, "PRECISION": 0.919, "RECALL": 0.6307, "F1": 0.7481, "AP_TESE": 0.6114}, {"epoca": 40, "PRECISION": 0.9179, "RECALL": 0.6209, "F1": 0.7407, "AP_TESE": 0.6024}]], "tempo_treino": 36.038333333333334, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9426, "desvio": 0.0, "min": 0.9426, "max": 0.9426, "n": 1}, "RECALL": {"media": 0.6156, "desvio": 0.0, "min": 0.6156, "max": 0.6156, "n": 1}, "F1": {"media": 0.7448, "desvio": 0.0, "min": 0.7448, "max": 0.7448, "n": 1}, "AP_TESE": {"media": 0.6053, "desvio": 0.0, "min": 0.6053, "max": 0.6053, "n": 1}, "AP_VOC": {"media": 0.9265, "desvio": 0.0, "min": 0.9265, "max": 0.9265, "n": 1}, "AP50": {"media": 0.7633, "desvio": 0.0, "min": 0.7633, "max": 0.7633, "n": 1}, "PREDICTIONS": {"media": 401.0, "desvio": 0.0, "min": 401.0, "max": 401.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "baseline", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9537, "RECALL": 0.6042, "F1": 0.7398, "AP_TESE": 0.5963, "AP_VOC": 0.9289, "AP50": 0.7954, "F1_IOU50": 0.6899, "THRESHOLD": 0.5, "PREDICTIONS": 389.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 1.0, "RECALL": 0.0294, "F1": 0.0571, "AP_TESE": 0.0294}, {"epoca": 2, "PRECISION": 0.9067, "RECALL": 0.2222, "F1": 0.357, "AP_TESE": 0.1961}, {"epoca": 3, "PRECISION": 0.9398, "RECALL": 0.4085, "F1": 0.5695, "AP_TESE": 0.3794}, {"epoca": 4, "PRECISION": 0.9271, "RECALL": 0.5817, "F1": 0.7149, "AP_TESE": 0.5593}, {"epoca": 5, "PRECISION": 0.9191, "RECALL": 0.5196, "F1": 0.6639, "AP_TESE": 0.488}, {"epoca": 6, "PRECISION": 0.9545, "RECALL": 0.4804, "F1": 0.6391, "AP_TESE": 0.464}, {"epoca": 7, "PRECISION": 0.9462, "RECALL": 0.402, "F1": 0.5642, "AP_TESE": 0.3814}, {"epoca": 8, "PRECISION": 0.9119, "RECALL": 0.5752, "F1": 0.7054, "AP_TESE": 0.5374}, {"epoca": 9, "PRECISION": 0.9243, "RECALL": 0.5588, "F1": 0.6965, "AP_TESE": 0.5336}, {"epoca": 10, "PRECISION": 0.9643, "RECALL": 0.2647, "F1": 0.4154, "AP_TESE": 0.2578}, {"epoca": 11, "PRECISION": 0.9364, "RECALL": 0.5294, "F1": 0.6764, "AP_TESE": 0.5126}, {"epoca": 12, "PRECISION": 0.9257, "RECALL": 0.6111, "F1": 0.7362, "AP_TESE": 0.5802}, {"epoca": 13, "PRECISION": 0.9309, "RECALL": 0.5719, "F1": 0.7085, "AP_TESE": 0.5524}, {"epoca": 14, "PRECISION": 0.9409, "RECALL": 0.6242, "F1": 0.7505, "AP_TESE": 0.6061}, {"epoca": 15, "PRECISION": 0.9243, "RECALL": 0.5588, "F1": 0.6965, "AP_TESE": 0.5369}, {"epoca": 16, "PRECISION": 0.9091, "RECALL": 0.6536, "F1": 0.7605, "AP_TESE": 0.6224}, {"epoca": 17, "PRECISION": 0.9243, "RECALL": 0.5588, "F1": 0.6965, "AP_TESE": 0.5394}, {"epoca": 18, "PRECISION": 0.8974, "RECALL": 0.5719, "F1": 0.6986, "AP_TESE": 0.5474}, {"epoca": 19, "PRECISION": 0.8987, "RECALL": 0.6667, "F1": 0.7655, "AP_TESE": 0.6289}, {"epoca": 20, "PRECISION": 0.9421, "RECALL": 0.585, "F1": 0.7218, "AP_TESE": 0.5639}, {"epoca": 21, "PRECISION": 0.9113, "RECALL": 0.6046, "F1": 0.7269, "AP_TESE": 0.5819}, {"epoca": 22, "PRECISION": 0.9239, "RECALL": 0.5948, "F1": 0.7237, "AP_TESE": 0.5722}, {"epoca": 23, "PRECISION": 0.9179, "RECALL": 0.6209, "F1": 0.7407, "AP_TESE": 0.5999}, {"epoca": 24, "PRECISION": 0.9337, "RECALL": 0.598, "F1": 0.7291, "AP_TESE": 0.5812}, {"epoca": 25, "PRECISION": 0.9175, "RECALL": 0.6176, "F1": 0.7383, "AP_TESE": 0.5983}, {"epoca": 26, "PRECISION": 0.9227, "RECALL": 0.585, "F1": 0.716, "AP_TESE": 0.566}, {"epoca": 27, "PRECISION": 0.9257, "RECALL": 0.6111, "F1": 0.7362, "AP_TESE": 0.5926}, {"epoca": 28, "PRECISION": 0.9167, "RECALL": 0.6111, "F1": 0.7333, "AP_TESE": 0.5895}, {"epoca": 29, "PRECISION": 0.9204, "RECALL": 0.6046, "F1": 0.7298, "AP_TESE": 0.5839}, {"epoca": 30, "PRECISION": 0.9167, "RECALL": 0.6111, "F1": 0.7333, "AP_TESE": 0.5917}]], "tempo_treino": 27.365000000000002, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9537, "desvio": 0.0, "min": 0.9537, "max": 0.9537, "n": 1}, "RECALL": {"media": 0.6042, "desvio": 0.0, "min": 0.6042, "max": 0.6042, "n": 1}, "F1": {"media": 0.7398, "desvio": 0.0, "min": 0.7398, "max": 0.7398, "n": 1}, "AP_TESE": {"media": 0.5963, "desvio": 0.0, "min": 0.5963, "max": 0.5963, "n": 1}, "AP_VOC": {"media": 0.9289, "desvio": 0.0, "min": 0.9289, "max": 0.9289, "n": 1}, "AP50": {"media": 0.7954, "desvio": 0.0, "min": 0.7954, "max": 0.7954, "n": 1}, "PREDICTIONS": {"media": 389.0, "desvio": 0.0, "min": 389.0, "max": 389.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 48, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "altoTargetBox", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9626, "RECALL": 0.5863, "F1": 0.7287, "AP_TESE": 0.576, "AP_VOC": 0.9283, "AP50": 0.7876, "F1_IOU50": 0.67, "THRESHOLD": 0.5, "PREDICTIONS": 374.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 1.0, "RECALL": 0.0033, "F1": 0.0065, "AP_TESE": 0.0033}, {"epoca": 2, "PRECISION": 0.9365, "RECALL": 0.1928, "F1": 0.3198, "AP_TESE": 0.182}, {"epoca": 3, "PRECISION": 0.9692, "RECALL": 0.2059, "F1": 0.3396, "AP_TESE": 0.2027}, {"epoca": 4, "PRECISION": 0.8895, "RECALL": 0.5, "F1": 0.6402, "AP_TESE": 0.4686}, {"epoca": 5, "PRECISION": 0.8377, "RECALL": 0.7255, "F1": 0.7776, "AP_TESE": 0.644}, {"epoca": 6, "PRECISION": 0.8937, "RECALL": 0.6046, "F1": 0.7212, "AP_TESE": 0.5705}, {"epoca": 7, "PRECISION": 0.9149, "RECALL": 0.281, "F1": 0.43, "AP_TESE": 0.265}, {"epoca": 8, "PRECISION": 0.8643, "RECALL": 0.7288, "F1": 0.7908, "AP_TESE": 0.6789}, {"epoca": 9, "PRECISION": 0.8956, "RECALL": 0.5327, "F1": 0.668, "AP_TESE": 0.5037}, {"epoca": 10, "PRECISION": 0.9179, "RECALL": 0.6209, "F1": 0.7407, "AP_TESE": 0.5902}, {"epoca": 11, "PRECISION": 0.9355, "RECALL": 0.5686, "F1": 0.7073, "AP_TESE": 0.546}, {"epoca": 12, "PRECISION": 0.9184, "RECALL": 0.5882, "F1": 0.7171, "AP_TESE": 0.5541}, {"epoca": 13, "PRECISION": 0.927, "RECALL": 0.5392, "F1": 0.6818, "AP_TESE": 0.5056}, {"epoca": 14, "PRECISION": 0.9167, "RECALL": 0.6471, "F1": 0.7586, "AP_TESE": 0.6067}, {"epoca": 15, "PRECISION": 0.911, "RECALL": 0.7026, "F1": 0.7934, "AP_TESE": 0.6623}, {"epoca": 16, "PRECISION": 0.9306, "RECALL": 0.5261, "F1": 0.6722, "AP_TESE": 0.5011}, {"epoca": 17, "PRECISION": 0.9404, "RECALL": 0.4641, "F1": 0.6214, "AP_TESE": 0.4493}, {"epoca": 18, "PRECISION": 0.9188, "RECALL": 0.7026, "F1": 0.7963, "AP_TESE": 0.6684}, {"epoca": 19, "PRECISION": 0.9388, "RECALL": 0.6013, "F1": 0.7331, "AP_TESE": 0.5748}, {"epoca": 20, "PRECISION": 0.9245, "RECALL": 0.6405, "F1": 0.7568, "AP_TESE": 0.6066}, {"epoca": 21, "PRECISION": 0.9303, "RECALL": 0.6111, "F1": 0.7377, "AP_TESE": 0.5874}, {"epoca": 22, "PRECISION": 0.9506, "RECALL": 0.5033, "F1": 0.6581, "AP_TESE": 0.4916}, {"epoca": 23, "PRECISION": 0.9257, "RECALL": 0.6111, "F1": 0.7362, "AP_TESE": 0.5904}, {"epoca": 24, "PRECISION": 0.9306, "RECALL": 0.6569, "F1": 0.7701, "AP_TESE": 0.6336}, {"epoca": 25, "PRECISION": 0.9196, "RECALL": 0.6732, "F1": 0.7774, "AP_TESE": 0.6411}, {"epoca": 26, "PRECISION": 0.9317, "RECALL": 0.6242, "F1": 0.7476, "AP_TESE": 0.5968}, {"epoca": 27, "PRECISION": 0.9256, "RECALL": 0.6503, "F1": 0.7639, "AP_TESE": 0.6254}, {"epoca": 28, "PRECISION": 0.9272, "RECALL": 0.6242, "F1": 0.7461, "AP_TESE": 0.6035}, {"epoca": 29, "PRECISION": 0.9289, "RECALL": 0.6405, "F1": 0.7582, "AP_TESE": 0.618}, {"epoca": 30, "PRECISION": 0.9317, "RECALL": 0.6242, "F1": 0.7476, "AP_TESE": 0.6}]], "tempo_treino": 26.756666666666668, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9626, "desvio": 0.0, "min": 0.9626, "max": 0.9626, "n": 1}, "RECALL": {"media": 0.5863, "desvio": 0.0, "min": 0.5863, "max": 0.5863, "n": 1}, "F1": {"media": 0.7287, "desvio": 0.0, "min": 0.7287, "max": 0.7287, "n": 1}, "AP_TESE": {"media": 0.576, "desvio": 0.0, "min": 0.576, "max": 0.576, "n": 1}, "AP_VOC": {"media": 0.9283, "desvio": 0.0, "min": 0.9283, "max": 0.9283, "n": 1}, "AP50": {"media": 0.7876, "desvio": 0.0, "min": 0.7876, "max": 0.7876, "n": 1}, "PREDICTIONS": {"media": 374.0, "desvio": 0.0, "min": 374.0, "max": 374.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0002, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "altoWeightDecay", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9656, "RECALL": 0.5489, "F1": 0.6999, "AP_TESE": 0.5422, "AP_VOC": 0.9254, "AP50": 0.8007, "F1_IOU50": 0.6521, "THRESHOLD": 0.5, "PREDICTIONS": 349.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.7403, "RECALL": 0.6242, "F1": 0.6773, "AP_TESE": 0.542}, {"epoca": 2, "PRECISION": 0.9583, "RECALL": 0.1503, "F1": 0.2599, "AP_TESE": 0.1456}, {"epoca": 3, "PRECISION": 0.8756, "RECALL": 0.6209, "F1": 0.7266, "AP_TESE": 0.5652}, {"epoca": 4, "PRECISION": 0.9048, "RECALL": 0.5588, "F1": 0.6909, "AP_TESE": 0.5208}, {"epoca": 5, "PRECISION": 0.9559, "RECALL": 0.2124, "F1": 0.3476, "AP_TESE": 0.2043}, {"epoca": 6, "PRECISION": 0.9202, "RECALL": 0.5654, "F1": 0.7004, "AP_TESE": 0.5396}, {"epoca": 7, "PRECISION": 0.9114, "RECALL": 0.4706, "F1": 0.6207, "AP_TESE": 0.4337}, {"epoca": 8, "PRECISION": 0.8826, "RECALL": 0.6144, "F1": 0.7245, "AP_TESE": 0.5765}, {"epoca": 9, "PRECISION": 0.9246, "RECALL": 0.6013, "F1": 0.7287, "AP_TESE": 0.5661}, {"epoca": 10, "PRECISION": 0.9369, "RECALL": 0.3399, "F1": 0.4988, "AP_TESE": 0.3189}, {"epoca": 11, "PRECISION": 0.9312, "RECALL": 0.5752, "F1": 0.7111, "AP_TESE": 0.5503}, {"epoca": 12, "PRECISION": 0.9069, "RECALL": 0.6046, "F1": 0.7255, "AP_TESE": 0.5695}, {"epoca": 13, "PRECISION": 0.9198, "RECALL": 0.5621, "F1": 0.6978, "AP_TESE": 0.5309}, {"epoca": 14, "PRECISION": 0.9223, "RECALL": 0.6209, "F1": 0.7422, "AP_TESE": 0.5991}, {"epoca": 15, "PRECISION": 0.9722, "RECALL": 0.1144, "F1": 0.2047, "AP_TESE": 0.112}, {"epoca": 16, "PRECISION": 0.9464, "RECALL": 0.5196, "F1": 0.6709, "AP_TESE": 0.4992}, {"epoca": 17, "PRECISION": 0.905, "RECALL": 0.6536, "F1": 0.759, "AP_TESE": 0.6205}, {"epoca": 18, "PRECISION": 0.9235, "RECALL": 0.5915, "F1": 0.7211, "AP_TESE": 0.5615}, {"epoca": 19, "PRECISION": 0.9242, "RECALL": 0.598, "F1": 0.7262, "AP_TESE": 0.5677}, {"epoca": 20, "PRECISION": 0.922, "RECALL": 0.6176, "F1": 0.7397, "AP_TESE": 0.5795}, {"epoca": 21, "PRECISION": 0.9087, "RECALL": 0.6503, "F1": 0.7581, "AP_TESE": 0.6091}, {"epoca": 22, "PRECISION": 0.9433, "RECALL": 0.4346, "F1": 0.5951, "AP_TESE": 0.4114}, {"epoca": 23, "PRECISION": 0.9213, "RECALL": 0.5359, "F1": 0.6777, "AP_TESE": 0.5113}, {"epoca": 24, "PRECISION": 0.9158, "RECALL": 0.6046, "F1": 0.7283, "AP_TESE": 0.5704}, {"epoca": 25, "PRECISION": 0.9312, "RECALL": 0.5752, "F1": 0.7111, "AP_TESE": 0.5444}, {"epoca": 26, "PRECISION": 0.9187, "RECALL": 0.6275, "F1": 0.7456, "AP_TESE": 0.5933}, {"epoca": 27, "PRECISION": 0.9351, "RECALL": 0.5654, "F1": 0.7047, "AP_TESE": 0.537}, {"epoca": 28, "PRECISION": 0.9296, "RECALL": 0.6046, "F1": 0.7327, "AP_TESE": 0.5724}, {"epoca": 29, "PRECISION": 0.9286, "RECALL": 0.5948, "F1": 0.7251, "AP_TESE": 0.5637}, {"epoca": 30, "PRECISION": 0.9365, "RECALL": 0.5784, "F1": 0.7152, "AP_TESE": 0.5478}]], "tempo_treino": 26.959999999999997, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9656, "desvio": 0.0, "min": 0.9656, "max": 0.9656, "n": 1}, "RECALL": {"media": 0.5489, "desvio": 0.0, "min": 0.5489, "max": 0.5489, "n": 1}, "F1": {"media": 0.6999, "desvio": 0.0, "min": 0.6999, "max": 0.6999, "n": 1}, "AP_TESE": {"media": 0.5422, "desvio": 0.0, "min": 0.5422, "max": 0.5422, "n": 1}, "AP_VOC": {"media": 0.9254, "desvio": 0.0, "min": 0.9254, "max": 0.9254, "n": 1}, "AP50": {"media": 0.8007, "desvio": 0.0, "min": 0.8007, "max": 0.8007, "n": 1}, "PREDICTIONS": {"media": 349.0, "desvio": 0.0, "min": 349.0, "max": 349.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 3, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "baixoTrainableLayers", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9466, "RECALL": 0.5489, "F1": 0.6948, "AP_TESE": 0.5353, "AP_VOC": 0.9201, "AP50": 0.783, "F1_IOU50": 0.6454, "THRESHOLD": 0.5, "PREDICTIONS": 356.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 1.0, "RECALL": 0.0196, "F1": 0.0385, "AP_TESE": 0.0196}, {"epoca": 2, "PRECISION": 0.9195, "RECALL": 0.4477, "F1": 0.6022, "AP_TESE": 0.4143}, {"epoca": 3, "PRECISION": 0.8413, "RECALL": 0.7451, "F1": 0.7903, "AP_TESE": 0.6769}, {"epoca": 4, "PRECISION": 0.9316, "RECALL": 0.3562, "F1": 0.5154, "AP_TESE": 0.3282}, {"epoca": 5, "PRECISION": 0.9444, "RECALL": 0.3333, "F1": 0.4928, "AP_TESE": 0.3158}, {"epoca": 6, "PRECISION": 0.9318, "RECALL": 0.134, "F1": 0.2343, "AP_TESE": 0.1275}, {"epoca": 7, "PRECISION": 0.9231, "RECALL": 0.5098, "F1": 0.6568, "AP_TESE": 0.479}, {"epoca": 8, "PRECISION": 0.9135, "RECALL": 0.5523, "F1": 0.6884, "AP_TESE": 0.5148}, {"epoca": 9, "PRECISION": 0.9302, "RECALL": 0.5229, "F1": 0.6695, "AP_TESE": 0.4971}, {"epoca": 10, "PRECISION": 0.9054, "RECALL": 0.6569, "F1": 0.7614, "AP_TESE": 0.6237}, {"epoca": 11, "PRECISION": 0.9023, "RECALL": 0.634, "F1": 0.7447, "AP_TESE": 0.6038}, {"epoca": 12, "PRECISION": 0.9105, "RECALL": 0.5654, "F1": 0.6976, "AP_TESE": 0.5352}, {"epoca": 13, "PRECISION": 0.9277, "RECALL": 0.5033, "F1": 0.6525, "AP_TESE": 0.4829}, {"epoca": 14, "PRECISION": 0.9177, "RECALL": 0.4739, "F1": 0.625, "AP_TESE": 0.4544}, {"epoca": 15, "PRECISION": 0.9301, "RECALL": 0.5654, "F1": 0.7033, "AP_TESE": 0.5432}, {"epoca": 16, "PRECISION": 0.9155, "RECALL": 0.6373, "F1": 0.7514, "AP_TESE": 0.609}, {"epoca": 17, "PRECISION": 0.8978, "RECALL": 0.6601, "F1": 0.7608, "AP_TESE": 0.6246}, {"epoca": 18, "PRECISION": 0.9126, "RECALL": 0.6144, "F1": 0.7344, "AP_TESE": 0.5837}, {"epoca": 19, "PRECISION": 0.9103, "RECALL": 0.6634, "F1": 0.7675, "AP_TESE": 0.6312}, {"epoca": 20, "PRECISION": 0.9286, "RECALL": 0.5523, "F1": 0.6926, "AP_TESE": 0.5311}, {"epoca": 21, "PRECISION": 0.9231, "RECALL": 0.549, "F1": 0.6885, "AP_TESE": 0.5265}, {"epoca": 22, "PRECISION": 0.8943, "RECALL": 0.6634, "F1": 0.7617, "AP_TESE": 0.6317}, {"epoca": 23, "PRECISION": 0.8978, "RECALL": 0.6601, "F1": 0.7608, "AP_TESE": 0.6247}, {"epoca": 24, "PRECISION": 0.8952, "RECALL": 0.6144, "F1": 0.7287, "AP_TESE": 0.5837}, {"epoca": 25, "PRECISION": 0.8995, "RECALL": 0.6144, "F1": 0.7301, "AP_TESE": 0.5803}, {"epoca": 26, "PRECISION": 0.9154, "RECALL": 0.6013, "F1": 0.7258, "AP_TESE": 0.5742}, {"epoca": 27, "PRECISION": 0.9135, "RECALL": 0.6209, "F1": 0.7393, "AP_TESE": 0.5896}, {"epoca": 28, "PRECISION": 0.8952, "RECALL": 0.6144, "F1": 0.7287, "AP_TESE": 0.5838}, {"epoca": 29, "PRECISION": 0.8962, "RECALL": 0.6209, "F1": 0.7336, "AP_TESE": 0.59}, {"epoca": 30, "PRECISION": 0.902, "RECALL": 0.6013, "F1": 0.7216, "AP_TESE": 0.5734}]], "tempo_treino": 25.545, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9466, "desvio": 0.0, "min": 0.9466, "max": 0.9466, "n": 1}, "RECALL": {"media": 0.5489, "desvio": 0.0, "min": 0.5489, "max": 0.5489, "n": 1}, "F1": {"media": 0.6948, "desvio": 0.0, "min": 0.6948, "max": 0.6948, "n": 1}, "AP_TESE": {"media": 0.5353, "desvio": 0.0, "min": 0.5353, "max": 0.5353, "n": 1}, "AP_VOC": {"media": 0.9201, "desvio": 0.0, "min": 0.9201, "max": 0.9201, "n": 1}, "AP50": {"media": 0.783, "desvio": 0.0, "min": 0.783, "max": 0.783, "n": 1}, "PREDICTIONS": {"media": 356.0, "desvio": 0.0, "min": 356.0, "max": 356.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 768, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "altoImageSize", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9613, "RECALL": 0.5261, "F1": 0.68, "AP_TESE": 0.5174, "AP_VOC": 0.9201, "AP50": 0.7798, "F1_IOU50": 0.6274, "THRESHOLD": 0.5, "PREDICTIONS": 336.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 1.0, "RECALL": 0.0033, "F1": 0.0065, "AP_TESE": 0.0033}, {"epoca": 2, "PRECISION": 0.9346, "RECALL": 0.3268, "F1": 0.4843, "AP_TESE": 0.3112}, {"epoca": 3, "PRECISION": 0.8947, "RECALL": 0.6111, "F1": 0.7262, "AP_TESE": 0.5611}, {"epoca": 4, "PRECISION": 0.9368, "RECALL": 0.5327, "F1": 0.6792, "AP_TESE": 0.513}, {"epoca": 5, "PRECISION": 0.9667, "RECALL": 0.2843, "F1": 0.4394, "AP_TESE": 0.2763}, {"epoca": 6, "PRECISION": 0.9545, "RECALL": 0.1373, "F1": 0.24, "AP_TESE": 0.129}, {"epoca": 7, "PRECISION": 0.9419, "RECALL": 0.5294, "F1": 0.6778, "AP_TESE": 0.5078}, {"epoca": 8, "PRECISION": 0.918, "RECALL": 0.549, "F1": 0.6871, "AP_TESE": 0.528}, {"epoca": 9, "PRECISION": 0.9504, "RECALL": 0.4379, "F1": 0.5996, "AP_TESE": 0.4265}, {"epoca": 10, "PRECISION": 0.9141, "RECALL": 0.5915, "F1": 0.7183, "AP_TESE": 0.5584}, {"epoca": 11, "PRECISION": 0.929, "RECALL": 0.5131, "F1": 0.6611, "AP_TESE": 0.4862}, {"epoca": 12, "PRECISION": 0.9396, "RECALL": 0.5588, "F1": 0.7008, "AP_TESE": 0.5431}, {"epoca": 13, "PRECISION": 0.9253, "RECALL": 0.5261, "F1": 0.6708, "AP_TESE": 0.507}, {"epoca": 14, "PRECISION": 0.9388, "RECALL": 0.451, "F1": 0.6093, "AP_TESE": 0.4344}, {"epoca": 15, "PRECISION": 0.9171, "RECALL": 0.5425, "F1": 0.6817, "AP_TESE": 0.5244}, {"epoca": 16, "PRECISION": 0.9153, "RECALL": 0.5654, "F1": 0.699, "AP_TESE": 0.5383}, {"epoca": 17, "PRECISION": 0.9158, "RECALL": 0.6046, "F1": 0.7283, "AP_TESE": 0.5734}, {"epoca": 18, "PRECISION": 0.9207, "RECALL": 0.4935, "F1": 0.6426, "AP_TESE": 0.4749}, {"epoca": 19, "PRECISION": 0.9103, "RECALL": 0.6634, "F1": 0.7675, "AP_TESE": 0.6349}, {"epoca": 20, "PRECISION": 0.9104, "RECALL": 0.6307, "F1": 0.7452, "AP_TESE": 0.6034}, {"epoca": 21, "PRECISION": 0.9286, "RECALL": 0.5098, "F1": 0.6582, "AP_TESE": 0.4956}, {"epoca": 22, "PRECISION": 0.9312, "RECALL": 0.5752, "F1": 0.7111, "AP_TESE": 0.5529}, {"epoca": 23, "PRECISION": 0.9184, "RECALL": 0.5882, "F1": 0.7171, "AP_TESE": 0.5599}, {"epoca": 24, "PRECISION": 0.915, "RECALL": 0.598, "F1": 0.7233, "AP_TESE": 0.5708}, {"epoca": 25, "PRECISION": 0.9139, "RECALL": 0.6242, "F1": 0.7417, "AP_TESE": 0.5963}, {"epoca": 26, "PRECISION": 0.9135, "RECALL": 0.6209, "F1": 0.7393, "AP_TESE": 0.5942}, {"epoca": 27, "PRECISION": 0.9052, "RECALL": 0.6242, "F1": 0.7389, "AP_TESE": 0.5946}, {"epoca": 28, "PRECISION": 0.9147, "RECALL": 0.6307, "F1": 0.7466, "AP_TESE": 0.6018}, {"epoca": 29, "PRECISION": 0.9171, "RECALL": 0.6144, "F1": 0.7358, "AP_TESE": 0.5868}, {"epoca": 30, "PRECISION": 0.9126, "RECALL": 0.6144, "F1": 0.7344, "AP_TESE": 0.5866}]], "tempo_treino": 32.34166666666667, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9613, "desvio": 0.0, "min": 0.9613, "max": 0.9613, "n": 1}, "RECALL": {"media": 0.5261, "desvio": 0.0, "min": 0.5261, "max": 0.5261, "n": 1}, "F1": {"media": 0.68, "desvio": 0.0, "min": 0.68, "max": 0.68, "n": 1}, "AP_TESE": {"media": 0.5174, "desvio": 0.0, "min": 0.5174, "max": 0.5174, "n": 1}, "AP_VOC": {"media": 0.9201, "desvio": 0.0, "min": 0.9201, "max": 0.9201, "n": 1}, "AP50": {"media": 0.7798, "desvio": 0.0, "min": 0.7798, "max": 0.7798, "n": 1}, "PREDICTIONS": {"media": 336.0, "desvio": 0.0, "min": 336.0, "max": 336.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 40, "batch_size": 8, "learning_rate": 0.01, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 40, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "wandb", "rodada": "buscas e sementes", "sementes": false, "testes": [{"PRECISION": 0.9807, "RECALL": 0.4967, "F1": 0.6595, "AP_TESE": 0.491, "AP_VOC": 0.9273, "AP50": 0.7877, "F1_IOU50": 0.6097, "THRESHOLD": 0.5, "PREDICTIONS": 311.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.6813, "RECALL": 0.4052, "F1": 0.5082, "AP_TESE": 0.3184}, {"epoca": 2, "PRECISION": 0.6813, "RECALL": 0.7124, "F1": 0.6965, "AP_TESE": 0.635}, {"epoca": 3, "PRECISION": 1.0, "RECALL": 0.0458, "F1": 0.0875, "AP_TESE": 0.0458}, {"epoca": 4, "PRECISION": 0.9091, "RECALL": 0.1307, "F1": 0.2286, "AP_TESE": 0.1254}, {"epoca": 5, "PRECISION": 0.9154, "RECALL": 0.6013, "F1": 0.7258, "AP_TESE": 0.5668}, {"epoca": 6, "PRECISION": 0.9291, "RECALL": 0.3856, "F1": 0.545, "AP_TESE": 0.3667}, {"epoca": 7, "PRECISION": 0.9474, "RECALL": 0.4118, "F1": 0.574, "AP_TESE": 0.3975}, {"epoca": 8, "PRECISION": 0.9236, "RECALL": 0.4739, "F1": 0.6263, "AP_TESE": 0.449}, {"epoca": 9, "PRECISION": 0.9, "RECALL": 0.6176, "F1": 0.7326, "AP_TESE": 0.587}, {"epoca": 10, "PRECISION": 1.0, "RECALL": 0.049, "F1": 0.0935, "AP_TESE": 0.049}, {"epoca": 11, "PRECISION": 0.9333, "RECALL": 0.5033, "F1": 0.6539, "AP_TESE": 0.48}, {"epoca": 12, "PRECISION": 0.8618, "RECALL": 0.7745, "F1": 0.8158, "AP_TESE": 0.7215}, {"epoca": 13, "PRECISION": 0.9383, "RECALL": 0.4967, "F1": 0.6496, "AP_TESE": 0.4752}, {"epoca": 14, "PRECISION": 0.8889, "RECALL": 0.6797, "F1": 0.7704, "AP_TESE": 0.6407}, {"epoca": 15, "PRECISION": 0.899, "RECALL": 0.6111, "F1": 0.7276, "AP_TESE": 0.5817}, {"epoca": 16, "PRECISION": 0.935, "RECALL": 0.6111, "F1": 0.7391, "AP_TESE": 0.5785}, {"epoca": 17, "PRECISION": 0.9227, "RECALL": 0.585, "F1": 0.716, "AP_TESE": 0.5555}, {"epoca": 18, "PRECISION": 0.9353, "RECALL": 0.5196, "F1": 0.6681, "AP_TESE": 0.4927}, {"epoca": 19, "PRECISION": 0.925, "RECALL": 0.6046, "F1": 0.7312, "AP_TESE": 0.5725}, {"epoca": 20, "PRECISION": 0.8875, "RECALL": 0.6961, "F1": 0.7802, "AP_TESE": 0.6508}, {"epoca": 21, "PRECISION": 0.9293, "RECALL": 0.5588, "F1": 0.698, "AP_TESE": 0.5295}, {"epoca": 22, "PRECISION": 0.887, "RECALL": 0.6667, "F1": 0.7612, "AP_TESE": 0.63}, {"epoca": 23, "PRECISION": 0.9139, "RECALL": 0.6242, "F1": 0.7417, "AP_TESE": 0.5892}, {"epoca": 24, "PRECISION": 0.9466, "RECALL": 0.4052, "F1": 0.5675, "AP_TESE": 0.3963}, {"epoca": 25, "PRECISION": 0.9009, "RECALL": 0.6536, "F1": 0.7576, "AP_TESE": 0.622}, {"epoca": 26, "PRECISION": 0.9018, "RECALL": 0.6601, "F1": 0.7623, "AP_TESE": 0.6239}, {"epoca": 27, "PRECISION": 0.9242, "RECALL": 0.598, "F1": 0.7262, "AP_TESE": 0.5711}, {"epoca": 28, "PRECISION": 0.9152, "RECALL": 0.6699, "F1": 0.7736, "AP_TESE": 0.6363}, {"epoca": 29, "PRECISION": 0.8954, "RECALL": 0.6993, "F1": 0.7853, "AP_TESE": 0.6638}, {"epoca": 30, "PRECISION": 0.9136, "RECALL": 0.6569, "F1": 0.7643, "AP_TESE": 0.6243}, {"epoca": 31, "PRECISION": 0.9206, "RECALL": 0.6438, "F1": 0.7577, "AP_TESE": 0.6134}, {"epoca": 32, "PRECISION": 0.919, "RECALL": 0.6307, "F1": 0.7481, "AP_TESE": 0.6}, {"epoca": 33, "PRECISION": 0.9136, "RECALL": 0.6569, "F1": 0.7643, "AP_TESE": 0.6238}, {"epoca": 34, "PRECISION": 0.9241, "RECALL": 0.6765, "F1": 0.7811, "AP_TESE": 0.6402}, {"epoca": 35, "PRECISION": 0.9242, "RECALL": 0.6373, "F1": 0.7544, "AP_TESE": 0.6122}, {"epoca": 36, "PRECISION": 0.9174, "RECALL": 0.6536, "F1": 0.7634, "AP_TESE": 0.6235}, {"epoca": 37, "PRECISION": 0.9136, "RECALL": 0.6569, "F1": 0.7643, "AP_TESE": 0.6232}, {"epoca": 38, "PRECISION": 0.8987, "RECALL": 0.6667, "F1": 0.7655, "AP_TESE": 0.63}, {"epoca": 39, "PRECISION": 0.9252, "RECALL": 0.6471, "F1": 0.7615, "AP_TESE": 0.6166}, {"epoca": 40, "PRECISION": 0.9213, "RECALL": 0.6503, "F1": 0.7625, "AP_TESE": 0.6215}]], "tempo_treino": 34.291666666666664, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9807, "desvio": 0.0, "min": 0.9807, "max": 0.9807, "n": 1}, "RECALL": {"media": 0.4967, "desvio": 0.0, "min": 0.4967, "max": 0.4967, "n": 1}, "F1": {"media": 0.6595, "desvio": 0.0, "min": 0.6595, "max": 0.6595, "n": 1}, "AP_TESE": {"media": 0.491, "desvio": 0.0, "min": 0.491, "max": 0.491, "n": 1}, "AP_VOC": {"media": 0.9273, "desvio": 0.0, "min": 0.9273, "max": 0.9273, "n": 1}, "AP50": {"media": 0.7877, "desvio": 0.0, "min": 0.7877, "max": 0.7877, "n": 1}, "PREDICTIONS": {"media": 311.0, "desvio": 0.0, "min": 311.0, "max": 311.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 512, "target_box": 40, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "baixoImageSize", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9683, "RECALL": 0.4967, "F1": 0.6566, "AP_TESE": 0.4876, "AP_VOC": 0.9044, "AP50": 0.7338, "F1_IOU50": 0.5963, "THRESHOLD": 0.5, "PREDICTIONS": 315.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.9123, "RECALL": 0.1699, "F1": 0.2865, "AP_TESE": 0.1503}, {"epoca": 2, "PRECISION": 0.952, "RECALL": 0.3889, "F1": 0.5522, "AP_TESE": 0.371}, {"epoca": 3, "PRECISION": 0.9231, "RECALL": 0.1961, "F1": 0.3235, "AP_TESE": 0.179}, {"epoca": 4, "PRECISION": 0.9381, "RECALL": 0.2974, "F1": 0.4516, "AP_TESE": 0.2751}, {"epoca": 5, "PRECISION": 0.8894, "RECALL": 0.6307, "F1": 0.738, "AP_TESE": 0.5977}, {"epoca": 6, "PRECISION": 0.9538, "RECALL": 0.2026, "F1": 0.3342, "AP_TESE": 0.196}, {"epoca": 7, "PRECISION": 0.9384, "RECALL": 0.4477, "F1": 0.6062, "AP_TESE": 0.4272}, {"epoca": 8, "PRECISION": 0.9255, "RECALL": 0.4869, "F1": 0.6381, "AP_TESE": 0.4675}, {"epoca": 9, "PRECISION": 0.9135, "RECALL": 0.5523, "F1": 0.6884, "AP_TESE": 0.5228}, {"epoca": 10, "PRECISION": 1.0, "RECALL": 0.1144, "F1": 0.2053, "AP_TESE": 0.1144}, {"epoca": 11, "PRECISION": 0.9273, "RECALL": 0.5, "F1": 0.6497, "AP_TESE": 0.4748}, {"epoca": 12, "PRECISION": 0.9561, "RECALL": 0.3562, "F1": 0.519, "AP_TESE": 0.3467}, {"epoca": 13, "PRECISION": 0.97, "RECALL": 0.317, "F1": 0.4778, "AP_TESE": 0.3092}, {"epoca": 14, "PRECISION": 0.9408, "RECALL": 0.4673, "F1": 0.6245, "AP_TESE": 0.4496}, {"epoca": 15, "PRECISION": 0.929, "RECALL": 0.4706, "F1": 0.6247, "AP_TESE": 0.4458}, {"epoca": 16, "PRECISION": 0.9218, "RECALL": 0.5392, "F1": 0.6804, "AP_TESE": 0.5083}, {"epoca": 17, "PRECISION": 0.9467, "RECALL": 0.4641, "F1": 0.6228, "AP_TESE": 0.4443}, {"epoca": 18, "PRECISION": 0.9524, "RECALL": 0.4575, "F1": 0.6181, "AP_TESE": 0.4403}, {"epoca": 19, "PRECISION": 0.9371, "RECALL": 0.5359, "F1": 0.6819, "AP_TESE": 0.5141}, {"epoca": 20, "PRECISION": 0.9213, "RECALL": 0.5359, "F1": 0.6777, "AP_TESE": 0.5166}, {"epoca": 21, "PRECISION": 0.965, "RECALL": 0.451, "F1": 0.6147, "AP_TESE": 0.4378}, {"epoca": 22, "PRECISION": 0.9709, "RECALL": 0.3268, "F1": 0.489, "AP_TESE": 0.3162}, {"epoca": 23, "PRECISION": 0.9467, "RECALL": 0.5229, "F1": 0.6737, "AP_TESE": 0.5032}, {"epoca": 24, "PRECISION": 0.9565, "RECALL": 0.5033, "F1": 0.6595, "AP_TESE": 0.4831}, {"epoca": 25, "PRECISION": 0.9415, "RECALL": 0.5261, "F1": 0.6751, "AP_TESE": 0.5042}, {"epoca": 26, "PRECISION": 0.9548, "RECALL": 0.4837, "F1": 0.6421, "AP_TESE": 0.467}, {"epoca": 27, "PRECISION": 0.9455, "RECALL": 0.5098, "F1": 0.6624, "AP_TESE": 0.4896}, {"epoca": 28, "PRECISION": 0.9497, "RECALL": 0.4935, "F1": 0.6495, "AP_TESE": 0.4743}, {"epoca": 29, "PRECISION": 0.9471, "RECALL": 0.5261, "F1": 0.6765, "AP_TESE": 0.5068}, {"epoca": 30, "PRECISION": 0.9461, "RECALL": 0.5163, "F1": 0.6681, "AP_TESE": 0.4966}]], "tempo_treino": 20.255, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9683, "desvio": 0.0, "min": 0.9683, "max": 0.9683, "n": 1}, "RECALL": {"media": 0.4967, "desvio": 0.0, "min": 0.4967, "max": 0.4967, "n": 1}, "F1": {"media": 0.6566, "desvio": 0.0, "min": 0.6566, "max": 0.6566, "n": 1}, "AP_TESE": {"media": 0.4876, "desvio": 0.0, "min": 0.4876, "max": 0.4876, "n": 1}, "AP_VOC": {"media": 0.9044, "desvio": 0.0, "min": 0.9044, "max": 0.9044, "n": 1}, "AP50": {"media": 0.7338, "desvio": 0.0, "min": 0.7338, "max": 0.7338, "n": 1}, "PREDICTIONS": {"media": 315.0, "desvio": 0.0, "min": 315.0, "max": 315.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": true, "rodadas_que_superam": 1}, {"hiper": {"image_size": 640, "target_box": 32, "batch_size": 4, "learning_rate": 0.005, "momentum": 0.9, "weight_decay": 0.0001, "warmup_steps": 300, "grad_clip": 10.0, "epochs": 30, "trainable_layers": 5, "focal_alpha": 0.25, "focal_gamma": 2.0, "fg_iou": 0.5, "nms_thresh": 0.4, "merge_nms": 0.4}, "hiper_origem": "tabela", "nome": "baixoTargetBox", "rodada": "1ª rodada", "sementes": false, "testes": [{"PRECISION": 0.9856, "RECALL": 0.2231, "F1": 0.3639, "AP_TESE": 0.2212, "AP_VOC": 0.9271, "AP50": 0.7698, "F1_IOU50": 0.3347, "THRESHOLD": 0.5, "PREDICTIONS": 139.0, "GROUND_TRUTH": 614.0}], "epocas": [[{"epoca": 1, "PRECISION": 0.8848, "RECALL": 0.4771, "F1": 0.62, "AP_TESE": 0.4465}, {"epoca": 2, "PRECISION": 0.9133, "RECALL": 0.585, "F1": 0.7131, "AP_TESE": 0.5552}, {"epoca": 3, "PRECISION": 0.9471, "RECALL": 0.5261, "F1": 0.6765, "AP_TESE": 0.5129}, {"epoca": 4, "PRECISION": 0.9163, "RECALL": 0.6078, "F1": 0.7308, "AP_TESE": 0.5897}, {"epoca": 5, "PRECISION": 0.9672, "RECALL": 0.3856, "F1": 0.5514, "AP_TESE": 0.381}, {"epoca": 6, "PRECISION": 0.9259, "RECALL": 0.5719, "F1": 0.7071, "AP_TESE": 0.5557}, {"epoca": 7, "PRECISION": 0.965, "RECALL": 0.451, "F1": 0.6147, "AP_TESE": 0.4451}, {"epoca": 8, "PRECISION": 1.0, "RECALL": 0.2941, "F1": 0.4545, "AP_TESE": 0.2941}, {"epoca": 9, "PRECISION": 0.9624, "RECALL": 0.4183, "F1": 0.5831, "AP_TESE": 0.4131}, {"epoca": 10, "PRECISION": 1.0, "RECALL": 0.2092, "F1": 0.3459, "AP_TESE": 0.2092}, {"epoca": 11, "PRECISION": 0.9538, "RECALL": 0.5392, "F1": 0.6889, "AP_TESE": 0.5323}, {"epoca": 12, "PRECISION": 0.9592, "RECALL": 0.4608, "F1": 0.6225, "AP_TESE": 0.453}, {"epoca": 13, "PRECISION": 0.9416, "RECALL": 0.4739, "F1": 0.6304, "AP_TESE": 0.4623}, {"epoca": 14, "PRECISION": 0.9337, "RECALL": 0.5065, "F1": 0.6568, "AP_TESE": 0.4932}, {"epoca": 15, "PRECISION": 0.9533, "RECALL": 0.4673, "F1": 0.6272, "AP_TESE": 0.4592}, {"epoca": 16, "PRECISION": 0.9227, "RECALL": 0.5458, "F1": 0.6858, "AP_TESE": 0.5333}, {"epoca": 17, "PRECISION": 0.9429, "RECALL": 0.5392, "F1": 0.6861, "AP_TESE": 0.5251}, {"epoca": 18, "PRECISION": 0.9389, "RECALL": 0.5523, "F1": 0.6955, "AP_TESE": 0.5394}, {"epoca": 19, "PRECISION": 0.9251, "RECALL": 0.5654, "F1": 0.7018, "AP_TESE": 0.549}, {"epoca": 20, "PRECISION": 0.8936, "RECALL": 0.6863, "F1": 0.7763, "AP_TESE": 0.6598}, {"epoca": 21, "PRECISION": 0.887, "RECALL": 0.6667, "F1": 0.7612, "AP_TESE": 0.6393}, {"epoca": 22, "PRECISION": 0.9275, "RECALL": 0.585, "F1": 0.7174, "AP_TESE": 0.5698}, {"epoca": 23, "PRECISION": 0.9196, "RECALL": 0.598, "F1": 0.7248, "AP_TESE": 0.5778}, {"epoca": 24, "PRECISION": 0.9154, "RECALL": 0.6013, "F1": 0.7258, "AP_TESE": 0.582}, {"epoca": 25, "PRECISION": 0.9235, "RECALL": 0.5915, "F1": 0.7211, "AP_TESE": 0.5716}, {"epoca": 26, "PRECISION": 0.9109, "RECALL": 0.6013, "F1": 0.7244, "AP_TESE": 0.5834}, {"epoca": 27, "PRECISION": 0.9143, "RECALL": 0.6275, "F1": 0.7442, "AP_TESE": 0.6077}, {"epoca": 28, "PRECISION": 0.899, "RECALL": 0.6111, "F1": 0.7276, "AP_TESE": 0.59}, {"epoca": 29, "PRECISION": 0.92, "RECALL": 0.6013, "F1": 0.7273, "AP_TESE": 0.5814}, {"epoca": 30, "PRECISION": 0.9179, "RECALL": 0.6209, "F1": 0.7407, "AP_TESE": 0.6018}]], "tempo_treino": 26.453333333333333, "tempo_busca": null, "curvas": [], "resumo": {"PRECISION": {"media": 0.9856, "desvio": 0.0, "min": 0.9856, "max": 0.9856, "n": 1}, "RECALL": {"media": 0.2231, "desvio": 0.0, "min": 0.2231, "max": 0.2231, "n": 1}, "F1": {"media": 0.3639, "desvio": 0.0, "min": 0.3639, "max": 0.3639, "n": 1}, "AP_TESE": {"media": 0.2212, "desvio": 0.0, "min": 0.2212, "max": 0.2212, "n": 1}, "AP_VOC": {"media": 0.9271, "desvio": 0.0, "min": 0.9271, "max": 0.9271, "n": 1}, "AP50": {"media": 0.7698, "desvio": 0.0, "min": 0.7698, "max": 0.7698, "n": 1}, "PREDICTIONS": {"media": 139.0, "desvio": 0.0, "min": 139.0, "max": 139.0, "n": 1}, "GROUND_TRUTH": {"media": 614.0, "desvio": 0.0, "min": 614.0, "max": 614.0, "n": 1}}, "supera_media": false, "rodadas_que_superam": 0}]};
+const M = ["PRECISION", "RECALL", "F1", "AP_TESE"];
+const NOME_M = { PRECISION: "Precisão", RECALL: "Sensibilidade", F1: "F-measure", AP_TESE: "AP" };
+const NOME_M_LONGO = { PRECISION: "Precisão (Precision)", RECALL: "Sensibilidade (Recall)", F1: "F-measure (F1)", AP_TESE: "AP (AP_TESE)" };
+const REF = DADOS.ref;
+const EXP = DADOS.experimentos;
+const fmt = (v, d = 4) => (v == null || Number.isNaN(v)) ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const sinal = (v, d = 4) => (v >= 0 ? "+" : "−") + fmt(Math.abs(v), d);
+const rotulo = (e) => e.sementes ? `${e.nome} (${e.testes.length} sementes)` : e.nome;
+
+function cor(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
+function tema() {
+  return {
+    bg: cor("--surface"), ink: cor("--ink"), ink2: cor("--ink-2"), muted: cor("--muted"), line: cor("--line"),
+    fuc: cor("--fucsina"), fucSoft: cor("--fucsina-soft"), met: cor("--metileno"), metSoft: cor("--metileno-soft"),
+    neutro: cor("--neutro"), zero: cor("--zero"), pos: cor("--div-pos"), neg: cor("--div-neg"),
+  };
+}
+function base(t, extra = {}) {
+  return Object.assign({
+    paper_bgcolor: t.bg, plot_bgcolor: t.bg, separators: ",.",
+    font: { family: getComputedStyle(document.body).fontFamily, color: t.ink2, size: 12 },
+    margin: { l: 56, r: 18, t: 16, b: 48 }, showlegend: false,
+    hoverlabel: { bgcolor: t.bg, bordercolor: t.line, font: { color: t.ink, family: "JetBrains Mono, monospace", size: 12 } },
+  }, extra);
+}
+function eixo(t, extra = {}) {
+  return Object.assign({ gridcolor: t.line, linecolor: t.line, zeroline: false, tickfont: { color: t.muted }, title: { font: { color: t.ink2, size: 12 } } }, extra);
+}
+const CONF = { displayModeBar: false, responsive: true };
+
+// ---------------------------------------------------------------- cabeçalho
+function cabecalho() {
+  document.getElementById("alvo").innerHTML = "<span>Alvo, média do RetinaNet da tese:</span>" +
+    M.map(k => `<span>${NOME_M[k]} &gt; <b>${fmt(REF[k])}</b></span>`).join("");
+  const superam = EXP.filter(e => e.supera_media);
+  const rodadas = EXP.reduce((s, e) => s + e.testes.length, 0);
+  const rodadasOk = EXP.reduce((s, e) => s + e.rodadas_que_superam, 0);
+  const melhor = EXP[0];
+  const sementes = EXP.filter(e => e.sementes).sort((a, b) => b.resumo.F1.media - a.resumo.F1.media)[0];
+  const tiles = [
+    { valor: `${superam.length} de ${EXP.length}`, rot: "experimentos superam as 4 médias", det: `${rodadasOk} de ${rodadas} rodadas de teste, contando cada semente` },
+    { valor: fmt(melhor.resumo.F1.media), rot: "maior F-measure", det: `${melhor.nome}, AP ${fmt(melhor.resumo.AP_TESE.media)}` },
+  ];
+  if (sementes) tiles.push({ valor: fmt(sementes.resumo.F1.media), rot: `F-measure médio, ${sementes.testes.length} sementes`, det: `${sementes.nome}: ± ${fmt(sementes.resumo.F1.desvio)} entre sementes` });
+  tiles.push({ valor: fmt(REF.F1), rot: "F-measure médio da tese", det: `RetinaNet, AP ${fmt(REF.AP_TESE)}`, tese: true });
+  document.getElementById("indicadores").innerHTML = tiles.map(x =>
+    `<div class="indicador${x.tese ? " tese" : ""}"><span class="rotulo">${x.rot}</span><span class="valor">${x.valor}</span><span class="detalhe">${x.det}</span></div>`).join("");
+  document.getElementById("rodape").textContent = `Gerado em ${DADOS.gerado_em} a partir de ${EXP.length} experimentos.`;
+}
+
+// ---------------------------------------------------------------- 1 folga
+function gSuperacao(t) {
+  const linhas = EXP.slice().reverse();
+  const z = linhas.map(e => M.map(k => e.resumo[k].media - REF[k]));
+  const texto = z.map(l => l.map(v => sinal(v)));
+  const y = linhas.map(e => rotulo(e) + (e.supera_media ? "  ✓ 4/4" : ""));
+  const altura = 60 + linhas.length * 30;
+  Plotly.react("g-superacao", [{
+    type: "heatmap", x: M.map(k => NOME_M_LONGO[k]), y, z, text: texto, texttemplate: "%{text}",
+    textfont: { family: "JetBrains Mono, monospace", size: 12, color: t.ink },
+    zmin: -0.15, zmax: 0.15, zmid: 0, xgap: 2, ygap: 2,
+    colorscale: [[0, t.neg], [0.5, t.zero], [1, t.pos]],
+    colorbar: { thickness: 10, len: 0.6, tickvals: [-0.15, 0, 0.15], ticktext: ["≤ −0,15", "0", "≥ +0,15"], tickfont: { color: t.muted }, outlinewidth: 0 },
+    hovertemplate: "%{y}<br>%{x}: %{text} sobre a tese<extra></extra>",
+  }], base(t, { height: altura, margin: { l: 250, r: 20, t: 8, b: 36 },
+    xaxis: eixo(t, { side: "bottom", gridcolor: "rgba(0,0,0,0)" }), yaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink, size: 12 } }) }), CONF);
+}
+
+// ---------------------------------------------------------------- 2 P x R
+function gPR(t) {
+  const traces = [];
+  for (const f of [0.6, 0.7, 0.8, 0.9]) {
+    const xs = [], ys = [];
+    for (let r = f / (2 - f) + 0.001; r <= 1.0001; r += 0.005) { const p = f * r / (2 * r - f); if (p <= 1.0) { xs.push(r); ys.push(p); } }
+    traces.push({ x: xs, y: ys, mode: "lines", line: { color: t.line, width: 1 }, hoverinfo: "skip" });
+  }
+  const tese = Object.entries(DADOS.tese);
+  traces.push({
+    x: tese.map(([, d]) => d.RECALL.media), y: tese.map(([, d]) => d.PRECISION.media), mode: "markers",
+    error_x: { array: tese.map(([, d]) => d.RECALL.desvio), color: t.met, thickness: 1, width: 0 },
+    error_y: { array: tese.map(([, d]) => d.PRECISION.desvio), color: t.met, thickness: 1, width: 0 },
+    marker: { color: t.met, size: 9, line: { color: t.bg, width: 2 } },
+    text: tese.map(([ds]) => `Tese · ${ds}`), hovertemplate: "%{text}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
+  });
+  traces.push({
+    x: [REF.RECALL], y: [REF.PRECISION], mode: "markers+text", text: ["média da tese"], textposition: "bottom center",
+    textfont: { color: t.met, size: 12 }, marker: { symbol: "diamond", color: t.met, size: 13, line: { color: t.bg, width: 2 } },
+    hovertemplate: "Média da tese<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
+  });
+  const sementes = EXP.filter(e => e.sementes);
+  for (const e of sementes) {
+    traces.push({
+      x: e.testes.map(r => r.RECALL), y: e.testes.map(r => r.PRECISION), mode: "markers",
+      marker: { color: t.fuc, size: 7, opacity: 0.45 },
+      text: e.testes.map((_, i) => `${e.nome} · semente ${i + 1}`), hovertemplate: "%{text}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
+    });
+  }
+  const destaque = new Set([EXP[0].nome, "baseline", ...sementes.map(e => e.nome)]);
+  traces.push({
+    x: EXP.map(e => e.resumo.RECALL.media), y: EXP.map(e => e.resumo.PRECISION.media),
+    mode: "markers+text", text: EXP.map(e => destaque.has(e.nome) ? rotulo(e) : ""), textposition: "top left",
+    textfont: { color: t.ink, size: 11 },
+    marker: { color: EXP.map(e => e.supera_media ? t.fuc : t.bg), size: EXP.map(e => e.sementes ? 13 : 10),
+      line: { color: t.fuc, width: 2 } },
+    customdata: EXP.map(e => [rotulo(e), e.resumo.F1.media, e.resumo.AP_TESE.media, e.supera_media ? "supera as 4" : "não supera as 4"]),
+    hovertemplate: "%{customdata[0]}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<br>F1 %{customdata[1]:.4f} · AP %{customdata[2]:.4f}<br>%{customdata[3]}<extra></extra>",
+  });
+  Plotly.react("g-pr", traces, base(t, {
+    height: 460,
+    xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0.15, 1.0], tickformat: ".1f" }),
+    yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.78, 1.0], tickformat: ".2f" }),
+    shapes: [{ type: "rect", xref: "x", yref: "y", x0: REF.RECALL, x1: 1.0, y0: REF.PRECISION, y1: 1.0, fillcolor: t.fucSoft, line: { width: 0 }, layer: "below" }],
+    annotations: [
+      { x: 0.99, y: 0.995, xanchor: "right", yanchor: "top", showarrow: false, text: "supera precisão e sensibilidade da tese", font: { color: t.fuc, size: 11 } },
+      ...[0.6, 0.7, 0.8, 0.9].map(f => ({ x: 0.995, y: f * 0.995 / (2 * 0.995 - f), xanchor: "right", yanchor: "bottom", showarrow: false, text: `F1 ${fmt(f, 1)}`, font: { color: t.muted, size: 10 } })),
+    ],
+  }), CONF);
+  const fora = EXP.filter(e => !e.supera_media && e.resumo.RECALL.media > REF.RECALL).map(e => e.nome);
+  document.getElementById("leitura-pr").textContent = fora.length
+    ? `Abaixo da faixa sombreada, com sensibilidade alta mas precisão abaixo da tese: ${fora.join(", ")}. São as execuções que otimizaram F1 e trocaram precisão por sensibilidade.`
+    : "Todas as execuções com sensibilidade acima da tese também ficam acima dela em precisão.";
+}
+
+// ---------------------------------------------------------------- 3 candlestick
+function resumo(valores) {
+  const n = valores.length, media = valores.reduce((a, b) => a + b, 0) / n;
+  const desvio = n > 1 ? Math.sqrt(valores.reduce((s, v) => s + (v - media) ** 2, 0) / (n - 1)) : 0;
+  return { media, desvio, min: Math.min(...valores), max: Math.max(...valores), n };
+}
+function grupos(k) {
+  const g = [{ nome: "Tese · 4 datasets", tese: true, r: resumo(Object.values(DADOS.tese).map(d => d[k].media)) }];
+  const primeira = EXP.filter(e => e.rodada === "1ª rodada");
+  if (primeira.length) g.push({ nome: `1ª rodada · ${primeira.length} configs`, r: resumo(primeira.map(e => e.resumo[k].media)) });
+  for (const e of EXP.filter(e => e.sementes)) g.push({ nome: `${e.nome} · ${e.testes.length} sem.`, r: resumo(e.testes.map(x => x[k])) });
+  return g;
+}
+function gVelas(t) {
+  for (const k of M) {
+    const g = grupos(k), traces = [];
+    for (const x of g) {
+      const c = x.tese ? t.met : t.fuc;
+      traces.push({
+        type: "candlestick", x: [x.nome], open: [x.r.media - x.r.desvio], close: [x.r.media + x.r.desvio], low: [x.r.min], high: [x.r.max],
+        increasing: { line: { color: c, width: 1.5 }, fillcolor: x.tese ? t.metSoft : t.fucSoft },
+        decreasing: { line: { color: c, width: 1.5 }, fillcolor: x.tese ? t.metSoft : t.fucSoft },
+        whiskerwidth: 0.25, hoverinfo: "skip",
+      });
+      traces.push({
+        type: "scatter", mode: "markers", x: [x.nome], y: [x.r.media],
+        marker: { symbol: "line-ew", size: 26, line: { color: c, width: 3 } },
+        customdata: [[x.r.min, x.r.media, x.r.desvio, x.r.max, x.r.n]],
+        hovertemplate: `${x.nome}<br>máximo %{customdata[3]:.4f}<br>média %{customdata[1]:.4f} ± %{customdata[2]:.4f}<br>mínimo %{customdata[0]:.4f}<br>n = %{customdata[4]}<extra>${NOME_M[k]}</extra>`,
+      });
+    }
+    Plotly.react(`g-vela-${k}`, traces, base(t, {
+      height: 330, margin: { l: 52, r: 12, t: 34, b: 70 },
+      title: { text: NOME_M_LONGO[k], x: 0.02, y: 0.97, font: { color: t.ink, size: 14, family: "Archivo, sans-serif" } },
+      xaxis: eixo(t, { type: "category", rangeslider: { visible: false }, gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2, size: 10.5 } }),
+      yaxis: eixo(t, { tickformat: ".2f" }),
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF[k], y1: REF[k], line: { color: t.met, width: 1 } }],
+      annotations: [{ xref: "paper", x: 1, y: REF[k], xanchor: "right", yanchor: "bottom", showarrow: false, text: `média da tese ${fmt(REF[k])}`, font: { color: t.met, size: 10 } }],
+    }), CONF);
+  }
+}
+
+// ---------------------------------------------------------------- 4 matriz
+function contagens(e) {
+  const vp = e.testes.map(r => Math.round(r.RECALL * r.GROUND_TRUTH));
+  const fp = e.testes.map((r, i) => r.PREDICTIONS - vp[i]);
+  const fn = e.testes.map((r, i) => r.GROUND_TRUTH - vp[i]);
+  return { vp: resumo(vp), fp: resumo(fp), fn: resumo(fn) };
+}
+function gMatriz(t) {
+  const e = EXP.find(x => x.nome === document.getElementById("sel-matriz").value) || EXP[0];
+  const c = contagens(e), n = e.testes.length;
+  const tx = (r) => n > 1 ? `${fmt(r.media, 1)}<br>± ${fmt(r.desvio, 1)}` : fmt(r.media, 0);
+  Plotly.react("g-matriz", [{
+    type: "heatmap", x: ["Previsto: bacilo", "Previsto: fundo"], y: ["Real: fundo", "Real: bacilo"],
+    z: [[c.fp.media, null], [c.vp.media, c.fn.media]],
+    text: [[`Falso positivo<br>${tx(c.fp)}`, "Verdadeiro negativo<br>não se aplica"], [`Verdadeiro positivo<br>${tx(c.vp)}`, `Falso negativo<br>${tx(c.fn)}`]],
+    texttemplate: "%{text}", textfont: { size: 13, color: t.ink, family: "JetBrains Mono, monospace" },
+    colorscale: [[0, t.zero], [1, t.pos]], zmin: 0, zmax: 614, showscale: false, xgap: 3, ygap: 3, hoverinfo: "skip",
+  }], base(t, { height: 340, margin: { l: 96, r: 12, t: 12, b: 40 },
+    xaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2 } }), yaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2 } }) }), CONF);
+  const r = e.resumo;
+  const linhas = [
+    ["Execução", rotulo(e)],
+    ["Bacilos anotados no teste", fmt(r.GROUND_TRUTH.media, 0)],
+    ["Caixas previstas (score ≥ 0,5)", fmt(r.PREDICTIONS.media, 1)],
+    ["Precisão = VP / (VP + FP)", fmt(r.PRECISION.media)],
+    ["Sensibilidade = VP / (VP + FN)", fmt(r.RECALL.media)],
+    ["F-measure", fmt(r.F1.media)],
+    ["AP (AP_TESE)", fmt(r.AP_TESE.media)],
+    ["Supera as 4 médias da tese", e.supera_media ? "sim" : "não"],
+  ];
+  document.getElementById("derivadas").innerHTML = linhas.map(([a, b]) => `<div><span>${a}</span><span>${b}</span></div>`).join("");
+}
+
+// ---------------------------------------------------------------- 5 aprendizado
+let metricaCurva = "F1";
+function gCurva(t) {
+  const sel = EXP.find(x => x.nome === document.getElementById("sel-curva").value) || EXP[0];
+  const traces = [];
+  for (const e of EXP) {
+    if (e === sel) continue;
+    for (const s of e.epocas) traces.push({ x: s.map(p => p.epoca), y: s.map(p => p[metricaCurva]), mode: "lines", line: { color: t.neutro, width: 1 }, opacity: 0.55, hoverinfo: "skip" });
+  }
+  const series = sel.epocas.filter(s => s.length);
+  if (series.length > 1) {
+    const n = Math.min(...series.map(s => s.length));
+    const ep = series[0].slice(0, n).map(p => p.epoca);
+    const val = ep.map((_, i) => series.map(s => s[i][metricaCurva]));
+    traces.push({ x: ep, y: val.map(v => Math.max(...v)), mode: "lines", line: { width: 0 }, hoverinfo: "skip" });
+    traces.push({ x: ep, y: val.map(v => Math.min(...v)), mode: "lines", line: { width: 0 }, fill: "tonexty", fillcolor: t.fucSoft, hoverinfo: "skip" });
+    traces.push({ x: ep, y: val.map(v => v.reduce((a, b) => a + b, 0) / v.length), mode: "lines", line: { color: t.fuc, width: 2 },
+      customdata: val.map(v => [Math.min(...v), Math.max(...v)]),
+      hovertemplate: `Época %{x}<br>média %{y:.4f}<br>faixa %{customdata[0]:.4f} a %{customdata[1]:.4f}<extra>${sel.nome}</extra>` });
+  } else if (series.length) {
+    traces.push({ x: series[0].map(p => p.epoca), y: series[0].map(p => p[metricaCurva]), mode: "lines+markers", line: { color: t.fuc, width: 2 }, marker: { size: 4 },
+      hovertemplate: `Época %{x}<br>%{y:.4f}<extra>${sel.nome}</extra>` });
+  }
+  Plotly.react("g-curva", traces, base(t, {
+    height: 380, xaxis: eixo(t, { title: { text: "Época" }, dtick: 5 }), yaxis: eixo(t, { title: { text: `${NOME_M_LONGO[metricaCurva]} na validação` }, tickformat: ".2f" }),
+    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF[metricaCurva], y1: REF[metricaCurva], line: { color: t.met, width: 1 } }],
+    annotations: [{ xref: "paper", x: 1, y: REF[metricaCurva], xanchor: "right", yanchor: "bottom", showarrow: false, text: "média da tese (teste)", font: { color: t.met, size: 10 } }],
+  }), CONF);
+}
+
+// ---------------------------------------------------------------- 6 curva PR do teste
+function gCurvaPR(t) {
+  const area = document.getElementById("area-curva-pr");
+  const com = EXP.filter(e => e.curvas && e.curvas.length);
+  if (!com.length) {
+    area.innerHTML = `<div class="vazio"><strong>Ainda sem curva gravada.</strong><span>O retinanet-optunaSuperaTese grava a curva de cada semente no log
+      (linhas rtn/curva_pr). Quando o log completo dele estiver na pasta, rode gerar_visualizacao.py de novo e a curva aparece aqui, ao lado dos pontos da tese.</span></div>`;
+    return;
+  }
+  if (!document.getElementById("g-curva-pr")) area.innerHTML = '<div class="figura"><div class="grafico" id="g-curva-pr" style="min-height:420px"></div></div>';
+  const traces = [];
+  for (const e of com) e.curvas.forEach((c, i) => {
+    const p = c.pontos.slice().sort((a, b) => a.sensibilidade - b.sensibilidade);
+    traces.push({ x: p.map(q => q.sensibilidade), y: p.map(q => q.precisao), mode: "lines", line: { color: t.fuc, width: 1.5 }, opacity: 0.8,
+      customdata: p.map(q => [q.limiar, q.tp, q.fp, q.fn]),
+      hovertemplate: `${e.nome} · semente ${i + 1}<br>limiar %{customdata[0]:.2f}<br>P %{y:.4f} · R %{x:.4f}<br>VP %{customdata[1]} · FP %{customdata[2]} · FN %{customdata[3]}<extra></extra>` });
+    const m = c.pontos.find(q => Math.abs(q.limiar - 0.5) < 1e-6);
+    if (m) traces.push({ x: [m.sensibilidade], y: [m.precisao], mode: "markers", marker: { color: t.fuc, size: 9, line: { color: t.bg, width: 2 } }, hoverinfo: "skip" });
+  });
+  const tese = Object.values(DADOS.tese);
+  traces.push({ x: tese.map(d => d.RECALL.media), y: tese.map(d => d.PRECISION.media), mode: "markers", marker: { color: t.met, size: 9, line: { color: t.bg, width: 2 } },
+    text: Object.keys(DADOS.tese), hovertemplate: "Tese · %{text}<br>P %{y:.4f} · R %{x:.4f}<extra></extra>" });
+  Plotly.react("g-curva-pr", traces, base(t, { height: 420,
+    xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0, 1] }), yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.5, 1.01] }),
+    shapes: [{ type: "rect", x0: REF.RECALL, x1: 1, y0: REF.PRECISION, y1: 1.01, fillcolor: t.fucSoft, line: { width: 0 }, layer: "below" }] }), CONF);
+}
+
+// ---------------------------------------------------------------- 7 custo
+function gCusto(t) {
+  const com = EXP.filter(e => e.tempo_treino);
+  const destaque = new Set([EXP[0].nome, "baseline", "baixoImageSize", "altoEpochs", ...EXP.filter(e => e.sementes).map(e => e.nome)]);
+  Plotly.react("g-custo", [{
+    x: com.map(e => e.tempo_treino), y: com.map(e => e.resumo.F1.media), mode: "markers+text",
+    error_y: { array: com.map(e => e.resumo.F1.desvio), color: t.fuc, thickness: 1, width: 0 },
+    text: com.map(e => destaque.has(e.nome) ? e.nome : ""), textposition: "top right", textfont: { color: t.ink, size: 11 },
+    marker: { color: com.map(e => e.supera_media ? t.fuc : t.bg), size: 10, line: { color: t.fuc, width: 2 } },
+    customdata: com.map(e => [rotulo(e), e.tempo_busca]),
+    hovertemplate: "%{customdata[0]}<br>%{x:.1f} min de treino<br>F1 %{y:.4f}<extra></extra>",
+  }], base(t, { height: 360,
+    xaxis: eixo(t, { title: { text: "Tempo de treino (min)" } }), yaxis: eixo(t, { title: { text: "F-measure (F1) no teste" }, tickformat: ".2f" }),
+    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF.F1, y1: REF.F1, line: { color: t.met, width: 1 } }],
+    annotations: [{ xref: "paper", x: 1, y: REF.F1, xanchor: "right", yanchor: "bottom", showarrow: false, text: "média da tese", font: { color: t.met, size: 10 } }],
+  }), CONF);
+}
+
+// ---------------------------------------------------------------- 8 tabela
+function tabela() {
+  const cab = ["Execução", "n", ...M.map(k => NOME_M_LONGO[k]), "AP_VOC", "AP50", "Treino (min)", "Busca (min)", "Supera as 4"];
+  const tese = Object.entries(DADOS.tese).map(([ds, d]) =>
+    `<tr class="tese"><td>Tese · ${ds}</td><td>—</td>${M.map(k => `<td>${fmt(d[k].media)} ± ${fmt(d[k].desvio)}</td>`).join("")}<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`).join("");
+  const media = `<tr class="tese"><td><strong>Tese · média</strong></td><td>4</td>${M.map(k => `<td><strong>${fmt(REF[k])}</strong></td>`).join("")}<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  const nossas = EXP.map(e => {
+    const r = e.resumo, n = e.testes.length;
+    const v = (k) => `<td class="${r[k].media <= (k in REF ? REF[k] : -1) ? "abaixo" : ""}">${fmt(r[k].media)}${n > 1 ? ` ± ${fmt(r[k].desvio)}` : ""}</td>`;
+    const selo = e.sementes ? `${e.rodadas_que_superam}/${n} sementes` : (e.supera_media ? "sim" : "não");
+    return `<tr><td>${rotulo(e)}</td><td>${n}</td>${M.map(v).join("")}<td>${fmt(r.AP_VOC.media)}</td><td>${fmt(r.AP50.media)}</td>` +
+      `<td>${e.tempo_treino ? fmt(e.tempo_treino, 1) : "—"}</td><td>${e.tempo_busca ? fmt(e.tempo_busca, 1) : "—"}</td>` +
+      `<td><span class="selo ${e.supera_media ? "sim" : "nao"}">${selo}</span></td></tr>`;
+  }).join("");
+  document.getElementById("tab").innerHTML = `<thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${tese}${media}${nossas}</tbody>`;
+}
+
+// ---------------------------------------------------------------- 9 hiperparâmetros
+const HIPER = [
+  ["image_size", "image_size", v => fmt(v, 0)], ["target_box", "target_box", v => fmt(v, 0)],
+  ["batch_size", "batch_size", v => fmt(v, 0)], ["learning_rate", "learning_rate", v => cientifico(v)],
+  ["momentum", "momentum", v => fmt(v, 3)], ["weight_decay", "weight_decay", v => cientifico(v)],
+  ["warmup_steps", "warmup_steps", v => fmt(v, 0)], ["grad_clip", "grad_clip", v => fmt(v, 1)],
+  ["epochs", "epochs", v => fmt(v, 0)], ["trainable_layers", "trainable_layers", v => fmt(v, 0)],
+  ["focal_alpha", "focal_alpha", v => fmt(v, 2)], ["focal_gamma", "focal_gamma", v => fmt(v, 1)],
+  ["fg_iou", "fg_iou", v => fmt(v, 2)], ["nms_thresh", "nms_thresh", v => fmt(v, 2)], ["merge_nms", "merge_nms", v => fmt(v, 2)],
+];
+function cientifico(v) {
+  const [m, e] = v.toExponential(1).split("e");
+  return `${m.replace(".", ",")}e${e.replace("+", "")}`;
+}
+function tabelaHiper() {
+  const base = DADOS.hiper_base;
+  const cab = `<thead><tr><th>Execução</th>${HIPER.map(([, c]) => `<th>${c}</th>`).join("")}</tr></thead>`;
+  const linhaBase = `<tr class="base"><td><strong>Base</strong></td>${HIPER.map(([k, , f]) => `<td>${f(base[k])}</td>`).join("")}</tr>`;
+  const linhas = EXP.map(e => {
+    const origem = e.hiper_origem === "log" ? " (lido do log)" : e.hiper_origem === "desconhecida" ? " (configuração não encontrada)" : "";
+    return `<tr><td>${rotulo(e)}${origem}</td>${HIPER.map(([k, , f]) => {
+      const v = e.hiper[k];
+      const mudou = Math.abs(v - base[k]) > 1e-12;
+      return `<td class="${mudou ? "mudou" : ""}">${f(v)}</td>`;
+    }).join("")}</tr>`;
+  }).join("");
+  document.getElementById("tab-hiper").innerHTML = `${cab}<tbody>${linhaBase}${linhas}</tbody>`;
+  document.getElementById("hiper-fixos").textContent = `Iguais em todos os treinos: ${DADOS.hiper_fixos}.`;
+}
+
+// ---------------------------------------------------------------- 10 linha do tempo
+function linhaDoTempo() {
+  const comLog = new Set(EXP.map(e => e.nome));
+  const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  document.getElementById("tempo").innerHTML = DADOS.linha_do_tempo.map(m => {
+    const estado = !m.experimentos.length ? "decisao" : m.experimentos.some(n => comLog.has(n)) ? "auditado" : "pendente";
+    const selo = estado === "auditado" ? '<span class="selo sim">log auditado</span>'
+      : estado === "pendente" ? '<span class="selo nao">aguardando log</span>' : '<span class="selo nao">decisão</span>';
+    const exps = m.experimentos.length ? `<div class="exps">${m.experimentos.map(n => `<span>${esc(n)}</span>`).join("")}</div>` : "";
+    return `<li class="marco ${estado}"><div class="quando"><b>${esc(m.data)}</b><span>${esc(m.hora)}</span></div><div class="eixo"></div>` +
+      `<div class="corpo"><div class="titulo"><h3>${esc(m.titulo)}</h3>${selo}</div>${exps}` +
+      `<div class="numeros">${esc(m.numeros)}</div><p class="licao">${esc(m.licao)}</p></div></li>`;
+  }).join("");
+}
+
+// ---------------------------------------------------------------- controles e tema
+function preencherControles() {
+  const opcoes = EXP.map(e => `<option value="${e.nome}">${rotulo(e)}</option>`).join("");
+  const sm = document.getElementById("sel-matriz"), sc = document.getElementById("sel-curva");
+  sm.innerHTML = opcoes; sc.innerHTML = opcoes;
+  const padrao = (EXP.find(e => e.sementes) || EXP[0]).nome;
+  sm.value = padrao; sc.value = padrao;
+  sm.addEventListener("change", () => gMatriz(tema()));
+  sc.addEventListener("change", () => gCurva(tema()));
+  const seg = document.getElementById("seg-metrica");
+  seg.innerHTML = M.map(k => `<button type="button" data-m="${k}" aria-pressed="${k === metricaCurva}">${NOME_M[k]}</button>`).join("");
+  seg.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    metricaCurva = b.dataset.m;
+    seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    gCurva(tema());
+  });
+}
+function desenhar() {
+  const t = tema();
+  gSuperacao(t); gPR(t); gVelas(t); gMatriz(t); gCurva(t); gCurvaPR(t); gCusto(t);
+}
+cabecalho(); tabela(); tabelaHiper(); linhaDoTempo(); preencherControles();
+if (window.Plotly) {
+  desenhar();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", desenhar);
+  new MutationObserver(desenhar).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+} else {
+  document.querySelectorAll(".grafico").forEach(g => { g.textContent = "Os gráficos precisam da biblioteca Plotly, que não carregou. A tabela no fim da página traz todos os números."; });
+}
+</script>
+
+</body>
+</html>

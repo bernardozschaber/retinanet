@@ -1,0 +1,633 @@
+<title>Painel RetinaNet Bacilos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: relatório de laboratório em coluna única, larga; cada seção = uma pergunta, um gráfico, uma leitura.
+   Cores da coloração de Ziehl-Neelsen: fucsina (bacilo, este trabalho) sobre azul de metileno (contracoloração, tese). */
+:root {
+  --bg: #fbf9fb;
+  --surface: #ffffff;
+  --ink: #1d1a22;
+  --ink-2: #5a5462;
+  --muted: #6e6777;
+  --line: #ebe6ee;
+  --fucsina: #c2185b;
+  --fucsina-soft: #f8e1eb;
+  --fucsina-tinta: #a8124c;
+  --metileno: #2b62a8;
+  --metileno-soft: #e1e9f5;
+  --neutro: #b7b0be;
+  --zero: #f0edf2;
+  --div-pos: #eb9bbb;
+  --div-neg: #9dbbe3;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17141b; --surface: #1f1b24; --ink: #f3eff5; --ink-2: #c2bbc9; --muted: #918a9b; --line: #2f2a36;
+    --fucsina: #e2528a; --fucsina-soft: #3a1d2b; --fucsina-tinta: #f07aa6; --metileno: #5f93dc; --metileno-soft: #1c2a3e;
+    --neutro: #5d5666; --zero: #26212b; --div-pos: #8a2853; --div-neg: #2b4f86; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17141b; --surface: #1f1b24; --ink: #f3eff5; --ink-2: #c2bbc9; --muted: #918a9b; --line: #2f2a36;
+  --fucsina: #e2528a; --fucsina-soft: #3a1d2b; --fucsina-tinta: #f07aa6; --metileno: #5f93dc; --metileno-soft: #1c2a3e;
+  --neutro: #5d5666; --zero: #26212b; --div-pos: #8a2853; --div-neg: #2b4f86; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.pagina { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 64px; display: grid; gap: 56px; }
+h1, h2 { font-family: var(--font-display); font-stretch: 85%; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 4.5vw, 3.1rem); font-weight: 800; line-height: 1.05; }
+h2 { font-size: 1.55rem; font-weight: 700; line-height: 1.15; }
+p { margin: 0; max-width: 68ch; }
+.rotulo { font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.leitura { color: var(--ink-2); }
+em.fucsina { font-style: normal; color: var(--fucsina); font-weight: 600; }
+em.metileno { font-style: normal; color: var(--metileno); font-weight: 600; }
+
+/* Cabeçalho */
+.topo { display: grid; gap: 18px; }
+.chaves { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; }
+.chave { display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--ink-2); }
+.chave i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.alvo { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.85rem; color: var(--ink-2); }
+.alvo b { font-family: var(--font-data); font-weight: 600; color: var(--metileno); }
+
+.indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.indicador { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.indicador .valor { font-family: var(--font-display); font-stretch: 80%; font-size: 2.3rem; font-weight: 800; line-height: 1; color: var(--fucsina); font-variant-numeric: tabular-nums; }
+.indicador.tese .valor { color: var(--metileno); }
+.indicador .detalhe { font-size: 0.82rem; color: var(--ink-2); }
+
+/* Seções */
+section { display: grid; gap: 14px; min-width: 0; }
+.cabeca { display: grid; gap: 6px; }
+.figura { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px 4px; min-width: 0; }
+.grafico { width: 100%; min-height: 320px; }
+.controles { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.controles label { font-size: 0.82rem; color: var(--ink-2); display: inline-flex; gap: 8px; align-items: center; }
+select { font: inherit; font-size: 0.88rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.segmentado { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.segmentado button { font: inherit; font-size: 0.82rem; background: var(--surface); color: var(--ink-2); border: 0; padding: 6px 12px; cursor: pointer; }
+.segmentado button + button { border-left: 1px solid var(--line); }
+.segmentado button[aria-pressed="true"] { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--fucsina); outline-offset: 2px; }
+.grade-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .grade-2 { grid-template-columns: minmax(0, 1fr); } }
+.vazio { border: 1px dashed var(--line); border-radius: 10px; padding: 22px; color: var(--ink-2); display: grid; gap: 6px; }
+
+.matriz { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .matriz { grid-template-columns: minmax(0, 1fr); } }
+.derivadas { display: grid; gap: 8px; font-size: 0.9rem; }
+.derivadas div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.derivadas span:last-child { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+/* Tabela */
+.tabela-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.86rem; min-width: 820px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-family: var(--font-data); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+td:first-child { font-family: var(--font-body); }
+tr.tese td { color: var(--metileno); }
+.selo { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.75rem; font-family: var(--font-data); }
+.selo.sim { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
+.selo.nao { background: var(--zero); color: var(--muted); }
+.abaixo { color: var(--metileno); }
+td.mudou { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
+tr.base td { color: var(--ink-2); }
+.nota { font-size: 0.82rem; color: var(--ink-2); }
+
+/* Linha do tempo */
+.tempo { list-style: none; margin: 0; padding: 0; display: grid; }
+.marco { display: grid; grid-template-columns: 128px 20px minmax(0, 1fr); grid-template-areas: "quando eixo corpo"; column-gap: 14px; }
+.marco .quando { grid-area: quando; text-align: right; font-family: var(--font-data); font-size: 0.78rem; color: var(--ink-2); line-height: 1.4; padding-top: 1px; display: grid; align-content: start; }
+.marco .quando b { color: var(--ink); font-weight: 600; }
+.marco .eixo { grid-area: eixo; position: relative; }
+.marco .eixo::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 2px; background: var(--line); }
+.marco:first-child .eixo::before { top: 8px; }
+.marco:last-child .eixo::before { bottom: auto; height: 8px; }
+.marco .eixo::after { content: ""; position: absolute; left: 3px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--fucsina); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--fucsina); }
+.marco.pendente .eixo::after { background: var(--bg); }
+.marco.decisao .eixo::after { background: var(--ink-2); box-shadow: 0 0 0 1px var(--ink-2); }
+.marco .corpo { grid-area: corpo; display: grid; gap: 6px; padding-bottom: 30px; min-width: 0; }
+.marco h3 { font-family: var(--font-display); font-stretch: 85%; font-size: 1.12rem; font-weight: 700; margin: 0; line-height: 1.2; text-wrap: balance; }
+.marco .titulo { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.marco .exps { display: flex; flex-wrap: wrap; gap: 4px; }
+.marco .exps span { font-family: var(--font-data); font-size: 0.72rem; color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+.marco .numeros { font-family: var(--font-data); font-size: 0.8rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.marco .licao { color: var(--ink-2); max-width: 74ch; }
+.marco .licao::before { content: "O que ensinou · "; font-family: var(--font-data); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fucsina-tinta); }
+.marco.pendente .licao::before { content: "Por que foi criado · "; color: var(--muted); }
+.marco.decisao .licao::before { content: "Por quê · "; color: var(--muted); }
+@media (max-width: 620px) {
+  .marco { grid-template-columns: 20px minmax(0, 1fr); grid-template-areas: "eixo quando" "eixo corpo"; }
+  .marco .quando { text-align: left; padding-bottom: 4px; }
+}
+footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="pagina">
+  <header class="topo">
+    <span class="rotulo">Detecção de bacilos de Koch · RetinaNet R50-FPN v2 · limiar de score 0,5 · IoU 0,1</span>
+    <h1>RetinaNet contra a tese, métrica por métrica</h1>
+    <p class="leitura">Cada experimento comparado com o RetinaNet da tese de Thales Carvalho no mesmo protocolo de avaliação.
+      As cores seguem a coloração de Ziehl-Neelsen: <em class="fucsina">fucsina</em>, a cor do bacilo, marca este trabalho;
+      <em class="metileno">azul de metileno</em>, a contracoloração, marca a tese.</p>
+    <div class="alvo" id="alvo"></div>
+    <div class="indicadores" id="indicadores"></div>
+  </header>
+
+  <section id="superacao">
+    <div class="cabeca">
+      <span class="rotulo">1 · Folga sobre a tese</span>
+      <h2>Quem supera a média da tese nas quatro métricas</h2>
+      <p class="leitura">Diferença de cada métrica para a média do RetinaNet da tese (datasets 1 a 4). Fucsina: acima da tese; azul: abaixo.
+        A escala satura em ±0,15 para que folgas pequenas de precisão continuem visíveis. Experimentos com várias sementes mostram a média.</p>
+    </div>
+    <div class="figura"><div class="grafico" id="g-superacao"></div></div>
+  </section>
+
+  <section id="pr">
+    <div class="cabeca">
+      <span class="rotulo">2 · Ponto de operação</span>
+      <h2>Precisão × sensibilidade no limiar 0,5</h2>
+      <p class="leitura">Cada ponto é uma execução no teste. A área sombreada é onde precisão e sensibilidade superam a média da tese ao mesmo tempo;
+        as curvas finas são F1 constante. Os pontos da tese trazem o desvio entre rodadas.</p>
+    </div>
+    <div class="figura"><div class="grafico" id="g-pr" style="min-height:460px"></div></div>
+    <p class="leitura" id="leitura-pr"></p>
+  </section>
+
+  <section id="faixas">
+    <div class="cabeca">
+      <span class="rotulo">3 · Mínimo, média e máximo</span>
+      <h2>Faixa de cada grupo de execuções</h2>
+      <p class="leitura">Candlestick: o pavio vai do mínimo ao máximo, o corpo cobre média ± desvio e o traço horizontal é a média.
+        Tese: os 4 datasets. 1ª rodada: as 10 variações de um hiperparâmetro. Experimentos com sementes: uma vela cada. A linha azul é a média da tese.</p>
+    </div>
+    <div class="grade-2">
+      <div class="figura"><div class="grafico" id="g-vela-PRECISION"></div></div>
+      <div class="figura"><div class="grafico" id="g-vela-RECALL"></div></div>
+      <div class="figura"><div class="grafico" id="g-vela-F1"></div></div>
+      <div class="figura"><div class="grafico" id="g-vela-AP_TESE"></div></div>
+    </div>
+  </section>
+
+  <section id="matriz">
+    <div class="cabeca">
+      <span class="rotulo">4 · Matriz de confusão da detecção</span>
+      <h2>Acertos, falsos positivos e bacilos perdidos</h2>
+      <p class="leitura">Em detecção de objetos não existe verdadeiro negativo contável: o fundo da lâmina não é uma lista de objetos.
+        Por isso a matriz tem três células e a curva ROC (que depende da taxa de falsos positivos sobre os negativos) dá lugar à curva precisão × sensibilidade.</p>
+    </div>
+    <div class="controles"><label for="sel-matriz">Execução <select id="sel-matriz"></select></label></div>
+    <div class="matriz">
+      <div class="figura"><div class="grafico" id="g-matriz" style="min-height:340px"></div></div>
+      <div class="derivadas" id="derivadas"></div>
+    </div>
+  </section>
+
+  <section id="aprendizado">
+    <div class="cabeca">
+      <span class="rotulo">5 · Diagnóstico do treino</span>
+      <h2>Curva de aprendizado na validação</h2>
+      <p class="leitura">Métrica da validação (20 lâminas) a cada época. A execução escolhida aparece em fucsina; com sementes, a faixa vai do pior ao melhor
+        valor da época e a linha é a média. Em cinza, as demais execuções, para contexto. A linha azul é a média da tese no teste, só como referência.</p>
+    </div>
+    <div class="controles">
+      <label for="sel-curva">Execução <select id="sel-curva"></select></label>
+      <div class="segmentado" role="group" aria-label="Métrica" id="seg-metrica"></div>
+    </div>
+    <div class="figura"><div class="grafico" id="g-curva" style="min-height:380px"></div></div>
+  </section>
+
+  <section id="curva-pr">
+    <div class="cabeca">
+      <span class="rotulo">6 · Curva precisão × sensibilidade no teste</span>
+      <h2>O que acontece ao mover o limiar</h2>
+      <p class="leitura">Curva completa, limiar de 0,05 a 0,95, gravada pelos experimentos a partir do optunaSuperaTese. O ponto marcado em cada curva é o limiar 0,5 da tese.</p>
+    </div>
+    <div id="area-curva-pr"></div>
+  </section>
+
+  <section id="custo">
+    <div class="cabeca">
+      <span class="rotulo">7 · Custo</span>
+      <h2>Tempo de treino × F1</h2>
+      <p class="leitura">Minutos de treino de uma execução (Quadro RTX 6000) contra o F1 no teste. Para experimentos com sementes, tempo e F1 são médias, e a barra é ± desvio.
+        O tempo de busca do Optuna não entra aqui; ele aparece na tabela.</p>
+    </div>
+    <div class="figura"><div class="grafico" id="g-custo" style="min-height:360px"></div></div>
+  </section>
+
+  <section id="tabela">
+    <div class="cabeca">
+      <span class="rotulo">8 · Números</span>
+      <h2>Tabela completa</h2>
+    </div>
+    <div class="tabela-wrap"><table id="tab"></table></div>
+  </section>
+
+  <section id="hiperparametros">
+    <div class="cabeca">
+      <span class="rotulo">9 · Configuração</span>
+      <h2>Hiperparâmetros de cada treino</h2>
+      <p class="leitura">Na mesma ordem da tabela acima. A primeira linha é a configuração base; os valores em fucsina são os que cada treino mudou em relação a ela.</p>
+    </div>
+    <div class="tabela-wrap"><table id="tab-hiper"></table></div>
+    <p class="nota" id="hiper-fixos"></p>
+  </section>
+
+  <section id="linha-do-tempo">
+    <div class="cabeca">
+      <span class="rotulo">10 · Linha do tempo</span>
+      <h2>O que cada rodada ensinou</h2>
+      <p class="leitura">Os experimentos em ordem cronológica, com o horário de início e de fim tirado de cada log e os números do teste no limiar 0,5.
+        Ponto cheio: log auditado. Ponto vazio: experimento criado, aguardando o log. Ponto cinza: decisão de método.</p>
+    </div>
+    <ol class="tempo" id="tempo"></ol>
+  </section>
+
+  <footer>
+    <span id="rodape"></span>
+    <span>Fonte: logs dos experimentos na plataforma Flautim e Tabelas 22 a 25 da tese. Conjunto de teste: 40 lâminas, 614 bacilos anotados.</span>
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script>
+const DADOS = /*__DADOS__*/null;
+const M = ["PRECISION", "RECALL", "F1", "AP_TESE"];
+const NOME_M = { PRECISION: "Precisão", RECALL: "Sensibilidade", F1: "F-measure", AP_TESE: "AP" };
+const NOME_M_LONGO = { PRECISION: "Precisão (Precision)", RECALL: "Sensibilidade (Recall)", F1: "F-measure (F1)", AP_TESE: "AP (AP_TESE)" };
+const REF = DADOS.ref;
+const EXP = DADOS.experimentos;
+const fmt = (v, d = 4) => (v == null || Number.isNaN(v)) ? "—" : v.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const sinal = (v, d = 4) => (v >= 0 ? "+" : "−") + fmt(Math.abs(v), d);
+const rotulo = (e) => e.sementes ? `${e.nome} (${e.testes.length} sementes)` : e.nome;
+
+function cor(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
+function tema() {
+  return {
+    bg: cor("--surface"), ink: cor("--ink"), ink2: cor("--ink-2"), muted: cor("--muted"), line: cor("--line"),
+    fuc: cor("--fucsina"), fucSoft: cor("--fucsina-soft"), met: cor("--metileno"), metSoft: cor("--metileno-soft"),
+    neutro: cor("--neutro"), zero: cor("--zero"), pos: cor("--div-pos"), neg: cor("--div-neg"),
+  };
+}
+function base(t, extra = {}) {
+  return Object.assign({
+    paper_bgcolor: t.bg, plot_bgcolor: t.bg, separators: ",.",
+    font: { family: getComputedStyle(document.body).fontFamily, color: t.ink2, size: 12 },
+    margin: { l: 56, r: 18, t: 16, b: 48 }, showlegend: false,
+    hoverlabel: { bgcolor: t.bg, bordercolor: t.line, font: { color: t.ink, family: "JetBrains Mono, monospace", size: 12 } },
+  }, extra);
+}
+function eixo(t, extra = {}) {
+  return Object.assign({ gridcolor: t.line, linecolor: t.line, zeroline: false, tickfont: { color: t.muted }, title: { font: { color: t.ink2, size: 12 } } }, extra);
+}
+const CONF = { displayModeBar: false, responsive: true };
+
+// ---------------------------------------------------------------- cabeçalho
+function cabecalho() {
+  document.getElementById("alvo").innerHTML = "<span>Alvo, média do RetinaNet da tese:</span>" +
+    M.map(k => `<span>${NOME_M[k]} &gt; <b>${fmt(REF[k])}</b></span>`).join("");
+  const superam = EXP.filter(e => e.supera_media);
+  const rodadas = EXP.reduce((s, e) => s + e.testes.length, 0);
+  const rodadasOk = EXP.reduce((s, e) => s + e.rodadas_que_superam, 0);
+  const melhor = EXP[0];
+  const sementes = EXP.filter(e => e.sementes).sort((a, b) => b.resumo.F1.media - a.resumo.F1.media)[0];
+  const tiles = [
+    { valor: `${superam.length} de ${EXP.length}`, rot: "experimentos superam as 4 médias", det: `${rodadasOk} de ${rodadas} rodadas de teste, contando cada semente` },
+    { valor: fmt(melhor.resumo.F1.media), rot: "maior F-measure", det: `${melhor.nome}, AP ${fmt(melhor.resumo.AP_TESE.media)}` },
+  ];
+  if (sementes) tiles.push({ valor: fmt(sementes.resumo.F1.media), rot: `F-measure médio, ${sementes.testes.length} sementes`, det: `${sementes.nome}: ± ${fmt(sementes.resumo.F1.desvio)} entre sementes` });
+  tiles.push({ valor: fmt(REF.F1), rot: "F-measure médio da tese", det: `RetinaNet, AP ${fmt(REF.AP_TESE)}`, tese: true });
+  document.getElementById("indicadores").innerHTML = tiles.map(x =>
+    `<div class="indicador${x.tese ? " tese" : ""}"><span class="rotulo">${x.rot}</span><span class="valor">${x.valor}</span><span class="detalhe">${x.det}</span></div>`).join("");
+  document.getElementById("rodape").textContent = `Gerado em ${DADOS.gerado_em} a partir de ${EXP.length} experimentos.`;
+}
+
+// ---------------------------------------------------------------- 1 folga
+function gSuperacao(t) {
+  const linhas = EXP.slice().reverse();
+  const z = linhas.map(e => M.map(k => e.resumo[k].media - REF[k]));
+  const texto = z.map(l => l.map(v => sinal(v)));
+  const y = linhas.map(e => rotulo(e) + (e.supera_media ? "  ✓ 4/4" : ""));
+  const altura = 60 + linhas.length * 30;
+  Plotly.react("g-superacao", [{
+    type: "heatmap", x: M.map(k => NOME_M_LONGO[k]), y, z, text: texto, texttemplate: "%{text}",
+    textfont: { family: "JetBrains Mono, monospace", size: 12, color: t.ink },
+    zmin: -0.15, zmax: 0.15, zmid: 0, xgap: 2, ygap: 2,
+    colorscale: [[0, t.neg], [0.5, t.zero], [1, t.pos]],
+    colorbar: { thickness: 10, len: 0.6, tickvals: [-0.15, 0, 0.15], ticktext: ["≤ −0,15", "0", "≥ +0,15"], tickfont: { color: t.muted }, outlinewidth: 0 },
+    hovertemplate: "%{y}<br>%{x}: %{text} sobre a tese<extra></extra>",
+  }], base(t, { height: altura, margin: { l: 250, r: 20, t: 8, b: 36 },
+    xaxis: eixo(t, { side: "bottom", gridcolor: "rgba(0,0,0,0)" }), yaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink, size: 12 } }) }), CONF);
+}
+
+// ---------------------------------------------------------------- 2 P x R
+function gPR(t) {
+  const traces = [];
+  for (const f of [0.6, 0.7, 0.8, 0.9]) {
+    const xs = [], ys = [];
+    for (let r = f / (2 - f) + 0.001; r <= 1.0001; r += 0.005) { const p = f * r / (2 * r - f); if (p <= 1.0) { xs.push(r); ys.push(p); } }
+    traces.push({ x: xs, y: ys, mode: "lines", line: { color: t.line, width: 1 }, hoverinfo: "skip" });
+  }
+  const tese = Object.entries(DADOS.tese);
+  traces.push({
+    x: tese.map(([, d]) => d.RECALL.media), y: tese.map(([, d]) => d.PRECISION.media), mode: "markers",
+    error_x: { array: tese.map(([, d]) => d.RECALL.desvio), color: t.met, thickness: 1, width: 0 },
+    error_y: { array: tese.map(([, d]) => d.PRECISION.desvio), color: t.met, thickness: 1, width: 0 },
+    marker: { color: t.met, size: 9, line: { color: t.bg, width: 2 } },
+    text: tese.map(([ds]) => `Tese · ${ds}`), hovertemplate: "%{text}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
+  });
+  traces.push({
+    x: [REF.RECALL], y: [REF.PRECISION], mode: "markers+text", text: ["média da tese"], textposition: "bottom center",
+    textfont: { color: t.met, size: 12 }, marker: { symbol: "diamond", color: t.met, size: 13, line: { color: t.bg, width: 2 } },
+    hovertemplate: "Média da tese<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
+  });
+  const sementes = EXP.filter(e => e.sementes);
+  for (const e of sementes) {
+    traces.push({
+      x: e.testes.map(r => r.RECALL), y: e.testes.map(r => r.PRECISION), mode: "markers",
+      marker: { color: t.fuc, size: 7, opacity: 0.45 },
+      text: e.testes.map((_, i) => `${e.nome} · semente ${i + 1}`), hovertemplate: "%{text}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
+    });
+  }
+  const destaque = new Set([EXP[0].nome, "baseline", ...sementes.map(e => e.nome)]);
+  traces.push({
+    x: EXP.map(e => e.resumo.RECALL.media), y: EXP.map(e => e.resumo.PRECISION.media),
+    mode: "markers+text", text: EXP.map(e => destaque.has(e.nome) ? rotulo(e) : ""), textposition: "top left",
+    textfont: { color: t.ink, size: 11 },
+    marker: { color: EXP.map(e => e.supera_media ? t.fuc : t.bg), size: EXP.map(e => e.sementes ? 13 : 10),
+      line: { color: t.fuc, width: 2 } },
+    customdata: EXP.map(e => [rotulo(e), e.resumo.F1.media, e.resumo.AP_TESE.media, e.supera_media ? "supera as 4" : "não supera as 4"]),
+    hovertemplate: "%{customdata[0]}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<br>F1 %{customdata[1]:.4f} · AP %{customdata[2]:.4f}<br>%{customdata[3]}<extra></extra>",
+  });
+  Plotly.react("g-pr", traces, base(t, {
+    height: 460,
+    xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0.15, 1.0], tickformat: ".1f" }),
+    yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.78, 1.0], tickformat: ".2f" }),
+    shapes: [{ type: "rect", xref: "x", yref: "y", x0: REF.RECALL, x1: 1.0, y0: REF.PRECISION, y1: 1.0, fillcolor: t.fucSoft, line: { width: 0 }, layer: "below" }],
+    annotations: [
+      { x: 0.99, y: 0.995, xanchor: "right", yanchor: "top", showarrow: false, text: "supera precisão e sensibilidade da tese", font: { color: t.fuc, size: 11 } },
+      ...[0.6, 0.7, 0.8, 0.9].map(f => ({ x: 0.995, y: f * 0.995 / (2 * 0.995 - f), xanchor: "right", yanchor: "bottom", showarrow: false, text: `F1 ${fmt(f, 1)}`, font: { color: t.muted, size: 10 } })),
+    ],
+  }), CONF);
+  const fora = EXP.filter(e => !e.supera_media && e.resumo.RECALL.media > REF.RECALL).map(e => e.nome);
+  document.getElementById("leitura-pr").textContent = fora.length
+    ? `Abaixo da faixa sombreada, com sensibilidade alta mas precisão abaixo da tese: ${fora.join(", ")}. São as execuções que otimizaram F1 e trocaram precisão por sensibilidade.`
+    : "Todas as execuções com sensibilidade acima da tese também ficam acima dela em precisão.";
+}
+
+// ---------------------------------------------------------------- 3 candlestick
+function resumo(valores) {
+  const n = valores.length, media = valores.reduce((a, b) => a + b, 0) / n;
+  const desvio = n > 1 ? Math.sqrt(valores.reduce((s, v) => s + (v - media) ** 2, 0) / (n - 1)) : 0;
+  return { media, desvio, min: Math.min(...valores), max: Math.max(...valores), n };
+}
+function grupos(k) {
+  const g = [{ nome: "Tese · 4 datasets", tese: true, r: resumo(Object.values(DADOS.tese).map(d => d[k].media)) }];
+  const primeira = EXP.filter(e => e.rodada === "1ª rodada");
+  if (primeira.length) g.push({ nome: `1ª rodada · ${primeira.length} configs`, r: resumo(primeira.map(e => e.resumo[k].media)) });
+  for (const e of EXP.filter(e => e.sementes)) g.push({ nome: `${e.nome} · ${e.testes.length} sem.`, r: resumo(e.testes.map(x => x[k])) });
+  return g;
+}
+function gVelas(t) {
+  for (const k of M) {
+    const g = grupos(k), traces = [];
+    for (const x of g) {
+      const c = x.tese ? t.met : t.fuc;
+      traces.push({
+        type: "candlestick", x: [x.nome], open: [x.r.media - x.r.desvio], close: [x.r.media + x.r.desvio], low: [x.r.min], high: [x.r.max],
+        increasing: { line: { color: c, width: 1.5 }, fillcolor: x.tese ? t.metSoft : t.fucSoft },
+        decreasing: { line: { color: c, width: 1.5 }, fillcolor: x.tese ? t.metSoft : t.fucSoft },
+        whiskerwidth: 0.25, hoverinfo: "skip",
+      });
+      traces.push({
+        type: "scatter", mode: "markers", x: [x.nome], y: [x.r.media],
+        marker: { symbol: "line-ew", size: 26, line: { color: c, width: 3 } },
+        customdata: [[x.r.min, x.r.media, x.r.desvio, x.r.max, x.r.n]],
+        hovertemplate: `${x.nome}<br>máximo %{customdata[3]:.4f}<br>média %{customdata[1]:.4f} ± %{customdata[2]:.4f}<br>mínimo %{customdata[0]:.4f}<br>n = %{customdata[4]}<extra>${NOME_M[k]}</extra>`,
+      });
+    }
+    Plotly.react(`g-vela-${k}`, traces, base(t, {
+      height: 330, margin: { l: 52, r: 12, t: 34, b: 70 },
+      title: { text: NOME_M_LONGO[k], x: 0.02, y: 0.97, font: { color: t.ink, size: 14, family: "Archivo, sans-serif" } },
+      xaxis: eixo(t, { type: "category", rangeslider: { visible: false }, gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2, size: 10.5 } }),
+      yaxis: eixo(t, { tickformat: ".2f" }),
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF[k], y1: REF[k], line: { color: t.met, width: 1 } }],
+      annotations: [{ xref: "paper", x: 1, y: REF[k], xanchor: "right", yanchor: "bottom", showarrow: false, text: `média da tese ${fmt(REF[k])}`, font: { color: t.met, size: 10 } }],
+    }), CONF);
+  }
+}
+
+// ---------------------------------------------------------------- 4 matriz
+function contagens(e) {
+  const vp = e.testes.map(r => Math.round(r.RECALL * r.GROUND_TRUTH));
+  const fp = e.testes.map((r, i) => r.PREDICTIONS - vp[i]);
+  const fn = e.testes.map((r, i) => r.GROUND_TRUTH - vp[i]);
+  return { vp: resumo(vp), fp: resumo(fp), fn: resumo(fn) };
+}
+function gMatriz(t) {
+  const e = EXP.find(x => x.nome === document.getElementById("sel-matriz").value) || EXP[0];
+  const c = contagens(e), n = e.testes.length;
+  const tx = (r) => n > 1 ? `${fmt(r.media, 1)}<br>± ${fmt(r.desvio, 1)}` : fmt(r.media, 0);
+  Plotly.react("g-matriz", [{
+    type: "heatmap", x: ["Previsto: bacilo", "Previsto: fundo"], y: ["Real: fundo", "Real: bacilo"],
+    z: [[c.fp.media, null], [c.vp.media, c.fn.media]],
+    text: [[`Falso positivo<br>${tx(c.fp)}`, "Verdadeiro negativo<br>não se aplica"], [`Verdadeiro positivo<br>${tx(c.vp)}`, `Falso negativo<br>${tx(c.fn)}`]],
+    texttemplate: "%{text}", textfont: { size: 13, color: t.ink, family: "JetBrains Mono, monospace" },
+    colorscale: [[0, t.zero], [1, t.pos]], zmin: 0, zmax: 614, showscale: false, xgap: 3, ygap: 3, hoverinfo: "skip",
+  }], base(t, { height: 340, margin: { l: 96, r: 12, t: 12, b: 40 },
+    xaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2 } }), yaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2 } }) }), CONF);
+  const r = e.resumo;
+  const linhas = [
+    ["Execução", rotulo(e)],
+    ["Bacilos anotados no teste", fmt(r.GROUND_TRUTH.media, 0)],
+    ["Caixas previstas (score ≥ 0,5)", fmt(r.PREDICTIONS.media, 1)],
+    ["Precisão = VP / (VP + FP)", fmt(r.PRECISION.media)],
+    ["Sensibilidade = VP / (VP + FN)", fmt(r.RECALL.media)],
+    ["F-measure", fmt(r.F1.media)],
+    ["AP (AP_TESE)", fmt(r.AP_TESE.media)],
+    ["Supera as 4 médias da tese", e.supera_media ? "sim" : "não"],
+  ];
+  document.getElementById("derivadas").innerHTML = linhas.map(([a, b]) => `<div><span>${a}</span><span>${b}</span></div>`).join("");
+}
+
+// ---------------------------------------------------------------- 5 aprendizado
+let metricaCurva = "F1";
+function gCurva(t) {
+  const sel = EXP.find(x => x.nome === document.getElementById("sel-curva").value) || EXP[0];
+  const traces = [];
+  for (const e of EXP) {
+    if (e === sel) continue;
+    for (const s of e.epocas) traces.push({ x: s.map(p => p.epoca), y: s.map(p => p[metricaCurva]), mode: "lines", line: { color: t.neutro, width: 1 }, opacity: 0.55, hoverinfo: "skip" });
+  }
+  const series = sel.epocas.filter(s => s.length);
+  if (series.length > 1) {
+    const n = Math.min(...series.map(s => s.length));
+    const ep = series[0].slice(0, n).map(p => p.epoca);
+    const val = ep.map((_, i) => series.map(s => s[i][metricaCurva]));
+    traces.push({ x: ep, y: val.map(v => Math.max(...v)), mode: "lines", line: { width: 0 }, hoverinfo: "skip" });
+    traces.push({ x: ep, y: val.map(v => Math.min(...v)), mode: "lines", line: { width: 0 }, fill: "tonexty", fillcolor: t.fucSoft, hoverinfo: "skip" });
+    traces.push({ x: ep, y: val.map(v => v.reduce((a, b) => a + b, 0) / v.length), mode: "lines", line: { color: t.fuc, width: 2 },
+      customdata: val.map(v => [Math.min(...v), Math.max(...v)]),
+      hovertemplate: `Época %{x}<br>média %{y:.4f}<br>faixa %{customdata[0]:.4f} a %{customdata[1]:.4f}<extra>${sel.nome}</extra>` });
+  } else if (series.length) {
+    traces.push({ x: series[0].map(p => p.epoca), y: series[0].map(p => p[metricaCurva]), mode: "lines+markers", line: { color: t.fuc, width: 2 }, marker: { size: 4 },
+      hovertemplate: `Época %{x}<br>%{y:.4f}<extra>${sel.nome}</extra>` });
+  }
+  Plotly.react("g-curva", traces, base(t, {
+    height: 380, xaxis: eixo(t, { title: { text: "Época" }, dtick: 5 }), yaxis: eixo(t, { title: { text: `${NOME_M_LONGO[metricaCurva]} na validação` }, tickformat: ".2f" }),
+    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF[metricaCurva], y1: REF[metricaCurva], line: { color: t.met, width: 1 } }],
+    annotations: [{ xref: "paper", x: 1, y: REF[metricaCurva], xanchor: "right", yanchor: "bottom", showarrow: false, text: "média da tese (teste)", font: { color: t.met, size: 10 } }],
+  }), CONF);
+}
+
+// ---------------------------------------------------------------- 6 curva PR do teste
+function gCurvaPR(t) {
+  const area = document.getElementById("area-curva-pr");
+  const com = EXP.filter(e => e.curvas && e.curvas.length);
+  if (!com.length) {
+    area.innerHTML = `<div class="vazio"><strong>Ainda sem curva gravada.</strong><span>O retinanet-optunaSuperaTese grava a curva de cada semente no log
+      (linhas rtn/curva_pr). Quando o log completo dele estiver na pasta, rode gerar_visualizacao.py de novo e a curva aparece aqui, ao lado dos pontos da tese.</span></div>`;
+    return;
+  }
+  if (!document.getElementById("g-curva-pr")) area.innerHTML = '<div class="figura"><div class="grafico" id="g-curva-pr" style="min-height:420px"></div></div>';
+  const traces = [];
+  for (const e of com) e.curvas.forEach((c, i) => {
+    const p = c.pontos.slice().sort((a, b) => a.sensibilidade - b.sensibilidade);
+    traces.push({ x: p.map(q => q.sensibilidade), y: p.map(q => q.precisao), mode: "lines", line: { color: t.fuc, width: 1.5 }, opacity: 0.8,
+      customdata: p.map(q => [q.limiar, q.tp, q.fp, q.fn]),
+      hovertemplate: `${e.nome} · semente ${i + 1}<br>limiar %{customdata[0]:.2f}<br>P %{y:.4f} · R %{x:.4f}<br>VP %{customdata[1]} · FP %{customdata[2]} · FN %{customdata[3]}<extra></extra>` });
+    const m = c.pontos.find(q => Math.abs(q.limiar - 0.5) < 1e-6);
+    if (m) traces.push({ x: [m.sensibilidade], y: [m.precisao], mode: "markers", marker: { color: t.fuc, size: 9, line: { color: t.bg, width: 2 } }, hoverinfo: "skip" });
+  });
+  const tese = Object.values(DADOS.tese);
+  traces.push({ x: tese.map(d => d.RECALL.media), y: tese.map(d => d.PRECISION.media), mode: "markers", marker: { color: t.met, size: 9, line: { color: t.bg, width: 2 } },
+    text: Object.keys(DADOS.tese), hovertemplate: "Tese · %{text}<br>P %{y:.4f} · R %{x:.4f}<extra></extra>" });
+  Plotly.react("g-curva-pr", traces, base(t, { height: 420,
+    xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0, 1] }), yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.5, 1.01] }),
+    shapes: [{ type: "rect", x0: REF.RECALL, x1: 1, y0: REF.PRECISION, y1: 1.01, fillcolor: t.fucSoft, line: { width: 0 }, layer: "below" }] }), CONF);
+}
+
+// ---------------------------------------------------------------- 7 custo
+function gCusto(t) {
+  const com = EXP.filter(e => e.tempo_treino);
+  const destaque = new Set([EXP[0].nome, "baseline", "baixoImageSize", "altoEpochs", ...EXP.filter(e => e.sementes).map(e => e.nome)]);
+  Plotly.react("g-custo", [{
+    x: com.map(e => e.tempo_treino), y: com.map(e => e.resumo.F1.media), mode: "markers+text",
+    error_y: { array: com.map(e => e.resumo.F1.desvio), color: t.fuc, thickness: 1, width: 0 },
+    text: com.map(e => destaque.has(e.nome) ? e.nome : ""), textposition: "top right", textfont: { color: t.ink, size: 11 },
+    marker: { color: com.map(e => e.supera_media ? t.fuc : t.bg), size: 10, line: { color: t.fuc, width: 2 } },
+    customdata: com.map(e => [rotulo(e), e.tempo_busca]),
+    hovertemplate: "%{customdata[0]}<br>%{x:.1f} min de treino<br>F1 %{y:.4f}<extra></extra>",
+  }], base(t, { height: 360,
+    xaxis: eixo(t, { title: { text: "Tempo de treino (min)" } }), yaxis: eixo(t, { title: { text: "F-measure (F1) no teste" }, tickformat: ".2f" }),
+    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF.F1, y1: REF.F1, line: { color: t.met, width: 1 } }],
+    annotations: [{ xref: "paper", x: 1, y: REF.F1, xanchor: "right", yanchor: "bottom", showarrow: false, text: "média da tese", font: { color: t.met, size: 10 } }],
+  }), CONF);
+}
+
+// ---------------------------------------------------------------- 8 tabela
+function tabela() {
+  const cab = ["Execução", "n", ...M.map(k => NOME_M_LONGO[k]), "AP_VOC", "AP50", "Treino (min)", "Busca (min)", "Supera as 4"];
+  const tese = Object.entries(DADOS.tese).map(([ds, d]) =>
+    `<tr class="tese"><td>Tese · ${ds}</td><td>—</td>${M.map(k => `<td>${fmt(d[k].media)} ± ${fmt(d[k].desvio)}</td>`).join("")}<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`).join("");
+  const media = `<tr class="tese"><td><strong>Tese · média</strong></td><td>4</td>${M.map(k => `<td><strong>${fmt(REF[k])}</strong></td>`).join("")}<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  const nossas = EXP.map(e => {
+    const r = e.resumo, n = e.testes.length;
+    const v = (k) => `<td class="${r[k].media <= (k in REF ? REF[k] : -1) ? "abaixo" : ""}">${fmt(r[k].media)}${n > 1 ? ` ± ${fmt(r[k].desvio)}` : ""}</td>`;
+    const selo = e.sementes ? `${e.rodadas_que_superam}/${n} sementes` : (e.supera_media ? "sim" : "não");
+    return `<tr><td>${rotulo(e)}</td><td>${n}</td>${M.map(v).join("")}<td>${fmt(r.AP_VOC.media)}</td><td>${fmt(r.AP50.media)}</td>` +
+      `<td>${e.tempo_treino ? fmt(e.tempo_treino, 1) : "—"}</td><td>${e.tempo_busca ? fmt(e.tempo_busca, 1) : "—"}</td>` +
+      `<td><span class="selo ${e.supera_media ? "sim" : "nao"}">${selo}</span></td></tr>`;
+  }).join("");
+  document.getElementById("tab").innerHTML = `<thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${tese}${media}${nossas}</tbody>`;
+}
+
+// ---------------------------------------------------------------- 9 hiperparâmetros
+const HIPER = [
+  ["image_size", "image_size", v => fmt(v, 0)], ["target_box", "target_box", v => fmt(v, 0)],
+  ["batch_size", "batch_size", v => fmt(v, 0)], ["learning_rate", "learning_rate", v => cientifico(v)],
+  ["momentum", "momentum", v => fmt(v, 3)], ["weight_decay", "weight_decay", v => cientifico(v)],
+  ["warmup_steps", "warmup_steps", v => fmt(v, 0)], ["grad_clip", "grad_clip", v => fmt(v, 1)],
+  ["epochs", "epochs", v => fmt(v, 0)], ["trainable_layers", "trainable_layers", v => fmt(v, 0)],
+  ["focal_alpha", "focal_alpha", v => fmt(v, 2)], ["focal_gamma", "focal_gamma", v => fmt(v, 1)],
+  ["fg_iou", "fg_iou", v => fmt(v, 2)], ["nms_thresh", "nms_thresh", v => fmt(v, 2)], ["merge_nms", "merge_nms", v => fmt(v, 2)],
+];
+function cientifico(v) {
+  const [m, e] = v.toExponential(1).split("e");
+  return `${m.replace(".", ",")}e${e.replace("+", "")}`;
+}
+function tabelaHiper() {
+  const base = DADOS.hiper_base;
+  const cab = `<thead><tr><th>Execução</th>${HIPER.map(([, c]) => `<th>${c}</th>`).join("")}</tr></thead>`;
+  const linhaBase = `<tr class="base"><td><strong>Base</strong></td>${HIPER.map(([k, , f]) => `<td>${f(base[k])}</td>`).join("")}</tr>`;
+  const linhas = EXP.map(e => {
+    const origem = e.hiper_origem === "log" ? " (lido do log)" : e.hiper_origem === "desconhecida" ? " (configuração não encontrada)" : "";
+    return `<tr><td>${rotulo(e)}${origem}</td>${HIPER.map(([k, , f]) => {
+      const v = e.hiper[k];
+      const mudou = Math.abs(v - base[k]) > 1e-12;
+      return `<td class="${mudou ? "mudou" : ""}">${f(v)}</td>`;
+    }).join("")}</tr>`;
+  }).join("");
+  document.getElementById("tab-hiper").innerHTML = `${cab}<tbody>${linhaBase}${linhas}</tbody>`;
+  document.getElementById("hiper-fixos").textContent = `Iguais em todos os treinos: ${DADOS.hiper_fixos}.`;
+}
+
+// ---------------------------------------------------------------- 10 linha do tempo
+function linhaDoTempo() {
+  const comLog = new Set(EXP.map(e => e.nome));
+  const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  document.getElementById("tempo").innerHTML = DADOS.linha_do_tempo.map(m => {
+    const estado = !m.experimentos.length ? "decisao" : m.experimentos.some(n => comLog.has(n)) ? "auditado" : "pendente";
+    const selo = estado === "auditado" ? '<span class="selo sim">log auditado</span>'
+      : estado === "pendente" ? '<span class="selo nao">aguardando log</span>' : '<span class="selo nao">decisão</span>';
+    const exps = m.experimentos.length ? `<div class="exps">${m.experimentos.map(n => `<span>${esc(n)}</span>`).join("")}</div>` : "";
+    return `<li class="marco ${estado}"><div class="quando"><b>${esc(m.data)}</b><span>${esc(m.hora)}</span></div><div class="eixo"></div>` +
+      `<div class="corpo"><div class="titulo"><h3>${esc(m.titulo)}</h3>${selo}</div>${exps}` +
+      `<div class="numeros">${esc(m.numeros)}</div><p class="licao">${esc(m.licao)}</p></div></li>`;
+  }).join("");
+}
+
+// ---------------------------------------------------------------- controles e tema
+function preencherControles() {
+  const opcoes = EXP.map(e => `<option value="${e.nome}">${rotulo(e)}</option>`).join("");
+  const sm = document.getElementById("sel-matriz"), sc = document.getElementById("sel-curva");
+  sm.innerHTML = opcoes; sc.innerHTML = opcoes;
+  const padrao = (EXP.find(e => e.sementes) || EXP[0]).nome;
+  sm.value = padrao; sc.value = padrao;
+  sm.addEventListener("change", () => gMatriz(tema()));
+  sc.addEventListener("change", () => gCurva(tema()));
+  const seg = document.getElementById("seg-metrica");
+  seg.innerHTML = M.map(k => `<button type="button" data-m="${k}" aria-pressed="${k === metricaCurva}">${NOME_M[k]}</button>`).join("");
+  seg.addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    metricaCurva = b.dataset.m;
+    seg.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    gCurva(tema());
+  });
+}
+function desenhar() {
+  const t = tema();
+  gSuperacao(t); gPR(t); gVelas(t); gMatriz(t); gCurva(t); gCurvaPR(t); gCusto(t);
+}
+cabecalho(); tabela(); tabelaHiper(); linhaDoTempo(); preencherControles();
+if (window.Plotly) {
+  desenhar();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", desenhar);
+  new MutationObserver(desenhar).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+} else {
+  document.querySelectorAll(".grafico").forEach(g => { g.textContent = "Os gráficos precisam da biblioteca Plotly, que não carregou. A tabela no fim da página traz todos os números."; });
+}
+</script>
