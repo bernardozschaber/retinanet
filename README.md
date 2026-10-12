@@ -277,33 +277,51 @@ O painel junta todos os experimentos numa página: **[abrir o painel](https://be
 
 As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstico da tuberculose: **fucsina**, a cor em que o bacilo fica, marca este trabalho; **azul de metileno**, a contracoloração do fundo da lâmina, marca a tese.
 
-![Resumo do painel: 9 de 14 experimentos superam as quatro médias da tese](retinanet-visualizacao/imagens/01-resumo.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/01-resumo-escuro.png">
+  <img src="retinanet-visualizacao/imagens/01-resumo-claro.png" alt="Resumo do painel: 9 de 14 experimentos superam as quatro médias da tese">
+</picture>
 
 **Folga sobre a tese.** Cada experimento contra cada uma das quatro métricas, como diferença para a média do RetinaNet da tese. É a resposta direta à pergunta do projeto: quem supera a tese, em quê e por quanto. A marca "4/4" indica quem supera as quatro ao mesmo tempo.
 
-![Mapa de calor da folga de cada experimento sobre a média da tese](retinanet-visualizacao/imagens/02-folga-sobre-a-tese.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/02-folga-sobre-a-tese-escuro.png">
+  <img src="retinanet-visualizacao/imagens/02-folga-sobre-a-tese-claro.png" alt="Mapa de calor da folga de cada experimento sobre a média da tese">
+</picture>
 
 **Ponto de operação.** Precisão contra sensibilidade no limiar 0,5. A área sombreada é onde as duas superam a tese. O gráfico mostra a troca que os experimentos com Optuna fizeram: mais sensibilidade, à custa de precisão abaixo da tese.
 
-![Precisão × sensibilidade de cada execução no limiar 0,5](retinanet-visualizacao/imagens/03-precisao-sensibilidade.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/03-precisao-sensibilidade-escuro.png">
+  <img src="retinanet-visualizacao/imagens/03-precisao-sensibilidade-claro.png" alt="Precisão × sensibilidade de cada execução no limiar 0,5">
+</picture>
 
 **Mínimo, média e máximo.** Um candlestick por grupo: os 4 datasets da tese, as 10 configurações da 1ª rodada e cada experimento com várias sementes. O pavio vai do mínimo ao máximo e o corpo cobre média ± desvio, então dá para comparar a variação, e não só a média.
 
-![Candlestick de cada métrica por grupo de execuções](retinanet-visualizacao/imagens/04-candlestick.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/04-candlestick-escuro.png">
+  <img src="retinanet-visualizacao/imagens/04-candlestick-claro.png" alt="Candlestick de cada métrica por grupo de execuções">
+</picture>
 
 **Matriz de confusão da detecção.** Verdadeiros positivos, falsos positivos e bacilos perdidos de cada execução. Em detecção de objetos não existe verdadeiro negativo contável, porque o fundo da lâmina não é uma lista de objetos; por isso a curva ROC não se aplica, e o painel usa a curva precisão × sensibilidade no lugar dela.
 
-![Matriz de confusão da detecção para as cinco sementes](retinanet-visualizacao/imagens/05-matriz-de-confusao.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/05-matriz-de-confusao-escuro.png">
+  <img src="retinanet-visualizacao/imagens/05-matriz-de-confusao-claro.png" alt="Matriz de confusão da detecção para as cinco sementes">
+</picture>
 
 **Curva de aprendizado.** A métrica da validação época a época, com a faixa entre a melhor e a pior semente. Mostra quando o treino estabiliza e quanto as sementes divergem.
 
-![Curva de aprendizado na validação](retinanet-visualizacao/imagens/06-curva-de-aprendizado.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/06-curva-de-aprendizado-escuro.png">
+  <img src="retinanet-visualizacao/imagens/06-curva-de-aprendizado-claro.png" alt="Curva de aprendizado na validação">
+</picture>
 
 O painel traz ainda o custo em tempo de treino, a tabela completa, os hiperparâmetros de cada treino e a linha do tempo que está no fim deste README.
 
 ### 🔁 Atualizar o painel
 
-`retinanet-visualizacao/gerar_visualizacao.py` lê os logs e gera o painel, sem nenhum pacote além da biblioteca padrão do Python. O mesmo script reescreve a linha do tempo deste README. O visual fica em `modelo.html`: para mudar o painel, edite o modelo e gere de novo, porque o HTML gerado é sobrescrito a cada execução. As imagens acima saem de `capturar_imagens.py`, que precisa do Playwright com Chromium.
+`retinanet-visualizacao/gerar_visualizacao.py` lê os logs e gera o painel, sem nenhum pacote além da biblioteca padrão do Python. O mesmo script reescreve a linha do tempo deste README. O visual fica em `modelo.html`: para mudar o painel, edite o modelo e gere de novo, porque o HTML gerado é sobrescrito a cada execução. As imagens acima saem de `capturar_imagens.py`, que precisa do Playwright com Chromium. Cada uma tem duas versões com fundo transparente, uma do tema claro e outra do tema escuro do painel, e o GitHub mostra a que combina com o tema de quem lê.
 
 ---
 
