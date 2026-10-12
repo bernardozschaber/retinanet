@@ -42,16 +42,16 @@ O ponto de partida foi a tabela da tese (`resultados-thales.md`). Na média dos 
 
 ## 🏗️ Arquitetura
 
-O projeto segue a divisão da plataforma Flautim em **Dataset**, **Model** e **Experiment**, com uma pasta para cada classe: `retinanet-dataset/`, `retinanet-model/` e `retinanet-experiment/`. As três são compartilhadas por todos os experimentos e existem uma vez só. Cada pasta em `retinanet-experimentos/` guarda só o que muda de um experimento para outro: o `run.py` com os hiperparâmetros, o `requirements.txt`, o `hiperparametros.md`, que diz o que mudou e por quê, e, depois de rodar, o `log.md`.
+O projeto segue a divisão da plataforma Flautim em **Dataset**, **Model** e **Experiment**: `RetinaDataset.py`, `RetinaModel.py` e `RetinaExperiment.py`, na raiz do projeto. Os três são compartilhados por todos os experimentos e existem uma vez só. Cada pasta em `retinanet-experimentos/` guarda só o que muda de um experimento para outro: o `run.py` com os hiperparâmetros, o `requirements.txt`, o `hiperparametros.md`, que diz o que mudou e por quê, e, depois de rodar, o `log.md`.
 
 Na hora de rodar, a Flautim junta os arquivos numa pasta só, sem subpastas, e executa `python3 run.py` dali. Por isso os imports são planos (`import RetinaDataset`) e o ponto de entrada sempre se chama `run.py`.
 
 Os logs ficam no repositório de propósito. Eles são a fonte de verdade: o painel e os resultados deste README saem deles, com data e hora de cada treino.
 
 ```
-retinanet-dataset/              Dataset da Flautim: RetinaDataset.py (lâminas reescaladas e cortadas em ladrilhos)
-retinanet-model/                Model da Flautim: RetinaModel.py (RetinaNet R50-FPN v2 com âncoras pequenas)
-retinanet-experiment/           Experiment da Flautim: RetinaExperiment.py (ciclo de treino, avaliação e métricas)
+RetinaDataset.py                Dataset da Flautim: lâminas reescaladas e cortadas em ladrilhos
+RetinaModel.py                  Model da Flautim: RetinaNet R50-FPN v2 com âncoras pequenas
+RetinaExperiment.py             Experiment da Flautim: ciclo de treino, avaliação e métricas
 retinanet-experimentos/
   retinanet-<variação>/         um experimento: run.py, requirements.txt, hiperparametros.md
                                 (o que mudou e por quê) e log.md (o log completo da Flautim)
@@ -253,9 +253,9 @@ A comparação com a tese é sempre no limiar 0,5. O limiar escolhido na valida�
 
 Envie para a plataforma:
 
-- **Dataset:** `retinanet-dataset/RetinaDataset.py`;
-- **Model:** `retinanet-model/RetinaModel.py`;
-- **Experiment:** `retinanet-experiment/RetinaExperiment.py`, junto com o `run.py` e o `requirements.txt` da pasta do experimento em `retinanet-experimentos/`. O `hiperparametros.md` e o `log.md` não precisam subir.
+- **Dataset:** `RetinaDataset.py`;
+- **Model:** `RetinaModel.py`;
+- **Experiment:** `RetinaExperiment.py`, junto com o `run.py` e o `requirements.txt` da pasta do experimento em `retinanet-experimentos/`. O `hiperparametros.md` e o `log.md` não precisam subir.
 
 Dataset, Model e Experiment são os mesmos para todos os experimentos; o que muda de um experimento para outro está só na pasta dele. Nos experimentos da 1ª rodada o `requirements.txt` é propositalmente vazio; nos com Optuna ou W&B ele instala esses pacotes.
 
