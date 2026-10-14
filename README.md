@@ -326,11 +326,11 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
   <img src="retinanet-visualizacao/imagens/05-matriz-de-confusao-claro.png" alt="Matriz de confusão da detecção para as cinco sementes">
 </picture>
 
-**Curva precisão × sensibilidade no teste.** A curva completa de cada semente do optunaSuperaTese (os experimentos seguintes guardam a curva só em arquivo, não no log), com o limiar indo de 0,05 a 0,95 e o ponto do limiar 0,5 marcado, ao lado dos pontos da tese. Mostra quanto de sensibilidade o modelo ganharia baixando o limiar, e onde ele deixaria de superar a tese em precisão.
+**Curva precisão × sensibilidade no teste.** A curva completa de cada semente dos três experimentos que a gravam no log (optunaSuperaTese, wandbSementesSuperaTese e wandbSementesAlpha030, 13 curvas), com o limiar indo de 0,05 a 0,95 e o ponto do limiar 0,5 marcado, ao lado dos pontos da tese. Mostra quanto de sensibilidade o modelo ganharia baixando o limiar, e onde ele deixaria de superar a tese em precisão.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/07-curva-pr-teste-escuro.png">
-  <img src="retinanet-visualizacao/imagens/07-curva-pr-teste-claro.png" alt="Curva precisão × sensibilidade no teste para as sementes do optunaSuperaTese">
+  <img src="retinanet-visualizacao/imagens/07-curva-pr-teste-claro.png" alt="Curva precisão × sensibilidade no teste para as 13 sementes dos experimentos SuperaTese e Alpha030">
 </picture>
 
 **Curva de aprendizado.** A métrica da validação época a época, com a faixa entre a melhor e a pior semente. Mostra quando o treino estabiliza e quanto as sementes divergem.
