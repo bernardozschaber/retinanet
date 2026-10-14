@@ -165,19 +165,31 @@ LINHA_DO_TEMPO = [
               "lado: no limiar 0,45, as três sementes ainda superariam a tese em precisão e sensibilidade, com F1 de 0,73 "
               "a 0,79. Como isso foi visto no teste, é uma pista e não um resultado. Superar a tese nas quatro métricas é "
               "robusto; fazer isso com F1 alto pede uma folga menor na validação."},
-    {"data": "12/10/2026", "hora": "", "titulo": "Quatro critérios de checkpoint no mesmo treino",
+    {"data": "12/10/2026", "hora": "16:33–18:49", "titulo": "Quatro critérios de checkpoint no mesmo treino",
      "experimentos": ["wandbSementesSuperaTese"],
-     "numeros": "referência: optunaSuperaTese, 3 de 3 sementes acima da tese, F1 0,6799 ± 0,0337",
-     "licao": "Testa a folga do checkpoint sem olhar o teste. A configuração do optunaSuperaTese é treinada com cinco "
-              "sementes, e cada treino guarda o melhor checkpoint de quatro regras medidas na validação: sem folga (a "
-              "principal, declarada antes de rodar), folga de 0,01, maior AP_VOC e última época. Só a principal entra nas "
-              "tabelas; as outras mostram, no mesmo treino, quanto a regra de escolha muda o resultado."},
-    {"data": "12/10/2026", "hora": "", "titulo": "Alpha 0,30 com o limiar fixo em 0,5",
+     "numeros": "P 0,9605 ± 0,0095 · R 0,5401 ± 0,0364 · F1 0,6909 ± 0,0311 · AP 0,5308 ± 0,0359 · 5 de 5 sementes superam as 4",
+     "licao": "Cinco sementes, cinco vezes acima da tese nas quatro métricas, com +0,027 de folga na precisão. A pergunta "
+              "era se tirar a folga de 0,01 do checkpoint subia o F1. Subiu pouco: 0,6863 com folga e 0,6909 sem, dentro "
+              "do desvio entre sementes (0,03). O critério folga_001 repete o optunaSuperaTese (0,6799), então aquele "
+              "resultado se confirmou com mais sementes, e a folga não era o gargalo. O gargalo é escolher a época pelo "
+              "máximo de uma validação pequena e ruidosa: numa mesma semente, a sensibilidade da validação foi de 0,14 na "
+              "época 13 para 0,71 na 14, e a época escolhida variou de 7 a 26 entre as sementes. A última época, sem "
+              "seleção nenhuma, teve o maior F1 (0,7036) e também superou a tese em 5 de 5; no fim do cosseno a taxa de "
+              "aprendizado é baixa e os checkpoints se estabilizam. Os quatro critérios ficaram entre 0,686 e 0,704, "
+              "sem diferença clara nesta configuração."},
+    {"data": "12/10/2026", "hora": "16:51–19:07", "titulo": "Alpha 0,30 com o limiar fixo em 0,5",
      "experimentos": ["wandbSementesAlpha030"],
-     "numeros": "igual ao wandbSementesSuperaTese, com focal_alpha 0,30 em vez de 0,25",
-     "licao": "A pista do limiar 0,45 foi vista no teste e não pode ser usada como está. Subir um pouco o alpha da perda "
-              "focal empurra os scores para cima de forma legítima, com o limiar da tese mantido em 0,5. O trial com "
-              "alpha 0,35 da busca anterior também passou a tese na validação."},
+     "numeros": "P 0,9603 ± 0,0120 · R 0,5524 ± 0,0348 · F1 0,7007 ± 0,0266 · AP 0,5423 ± 0,0334 · 5 de 5 sementes superam as 4",
+     "licao": "Com o critério principal, o alpha 0,30 não se distingue do 0,25: +0,010 de F1 (p = 0,59 num teste de "
+              "permutação exato entre as 5 + 5 sementes) e a mesma precisão, 0,9603 contra 0,9605. O efeito do alpha "
+              "aparece quando se tira a seleção de época. Na última época o alpha 0,30 chega a F1 0,7537 ± 0,0138, contra "
+              "0,7036 do alpha 0,25 (+0,050, p = 0,016), com sensibilidade 0,6251 (+0,069, p = 0,024) e precisão 0,9496, "
+              "ainda +0,016 acima da tese nas cinco sementes. É o maior F1 entre as configurações que superam as quatro "
+              "métricas em várias sementes, e o desvio é a metade do critério principal. Escolher a época pelo AP_VOC é "
+              "arriscado com alpha 0,30: o F1 médio é 0,7214, mas só 2 de 5 sementes superam a tese (duas perdem na "
+              "precisão, uma na sensibilidade), com desvio de 0,0775. A ressalva é que a última época era um critério "
+              "secundário e foi a melhor de quatro vistas no teste, então o ganho precisa ser confirmado num experimento "
+              "que a declare como principal antes de rodar."},
 ]
 
 
@@ -186,6 +198,9 @@ LINHA_DO_TEMPO = [
 # e o mais completo, e a deduplicacao e pela linha inteira.
 LINHA = re.compile(r"^\s*(\d{2}/\d{2}/\d{4}, \d{2}:\d{2}:\d{2}): (.*)$")
 METRICA = re.compile(r"([A-Z][A-Z0-9_]+)=([0-9.]+)")
+METRICA_DP = re.compile(r"([A-Z][A-Z0-9_]+)=([0-9.]+) \(±([0-9.]+)\)")
+CRITERIO_RESUMO = re.compile(r"rtn/criterio > RESUMO criterio=(\w+)( \(principal\))?: (.*?); "
+                             r"sementes que superam as 4: (\d+)/(\d+); a media supera as 4: (\w+)")
 
 
 def linhas_plataforma(texto):
@@ -205,6 +220,7 @@ def ler_experimento(pasta):
     eventos = sorted(linhas_plataforma(texto), key=lambda e: e[0])
 
     testes, epocas, tempos_treino, curvas = [], [], [], []
+    criterios, escolhidas = [], {}
     busca = None
     for _, msg in eventos:
         if "rtn/teste > limiar 0.50 (tese):" in msg:
@@ -222,6 +238,19 @@ def ler_experimento(pasta):
         elif msg.startswith("OK: busca"):
             t = re.search(r"([0-9.]+)s\s*$", msg)
             busca = float(t.group(1)) / 60 if t else None
+        elif msg.startswith("rtn/criterio > RESUMO"):
+            m = CRITERIO_RESUMO.match(msg)
+            if m:
+                criterios.append({
+                    "nome": m.group(1), "principal": bool(m.group(2)),
+                    "media": {k: float(v) for k, v, _ in METRICA_DP.findall(m.group(3))},
+                    "desvio": {k: float(d) for k, _, d in METRICA_DP.findall(m.group(3))},
+                    "superam": int(m.group(4)), "sementes": int(m.group(5)), "media_supera": m.group(6) == "SIM",
+                })
+        elif msg.startswith("rtn/criterio > semente"):
+            m = re.match(r"rtn/criterio > semente \d+ criterio=(\w+)(?: \(principal\))? epoca=(\d+):", msg)
+            if m:
+                escolhidas.setdefault(m.group(1), []).append(int(m.group(2)))
         elif msg.startswith("rtn/curva_pr >"):
             try:
                 curvas.append(json.loads(msg.split(": ", 1)[1].rsplit(" - ", 1)[0]))
@@ -229,6 +258,10 @@ def ler_experimento(pasta):
                 pass
     if not testes:
         return None
+    ordem = ["sem_folga", "folga_001", "ap_voc", "ultima"]
+    criterios.sort(key=lambda c: ordem.index(c["nome"]) if c["nome"] in ordem else len(ordem))
+    for c in criterios:
+        c["epocas"] = escolhidas.get(c["nome"], [])
     nome = pasta.name.removeprefix("retinanet-")
     if nome in HIPER_MUDANCA:
         hiper, origem = {**HIPER_BASE, **HIPER_MUDANCA[nome]}, "tabela"
@@ -246,6 +279,7 @@ def ler_experimento(pasta):
         "tempo_treino": statistics.mean(tempos_treino) if tempos_treino else None,
         "tempo_busca": busca,
         "curvas": curvas,
+        "criterios": criterios,
     }
 
 

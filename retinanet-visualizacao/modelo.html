@@ -66,6 +66,7 @@ em.metileno { font-style: normal; color: var(--metileno); font-weight: 600; }
 
 /* Seções */
 section { display: grid; gap: 14px; min-width: 0; }
+section[hidden] { display: none; }
 .cabeca { display: grid; gap: 6px; }
 .figura { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px 4px; min-width: 0; }
 .grafico { width: 100%; min-height: 320px; }
@@ -102,6 +103,8 @@ tr.tese td { color: var(--metileno); }
 .abaixo { color: var(--metileno); }
 td.mudou { background: var(--fucsina-soft); color: var(--fucsina-tinta); font-weight: 600; }
 tr.base td { color: var(--ink-2); }
+tr.grupo td { background: var(--zero); color: var(--ink-2); font-family: var(--font-body); }
+tr.melhor td:first-child { font-weight: 700; color: var(--fucsina-tinta); }
 .nota { font-size: 0.82rem; color: var(--ink-2); }
 
 /* Linha do tempo */
@@ -236,9 +239,20 @@ footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
     <div class="tabela-wrap"><table id="tab"></table></div>
   </section>
 
+  <section id="criterios">
+    <div class="cabeca">
+      <span class="rotulo">9 · Escolha do checkpoint</span>
+      <h2>O mesmo treino, quatro regras de escolha da época</h2>
+      <p class="leitura">Nos experimentos que guardam vários checkpoints por semente, cada regra é medida só na validação e o resultado é lido no teste, no limiar 0,5.
+        A regra marcada como principal foi declarada antes de rodar; as outras são análise. "Épocas" lista a época escolhida em cada semente.</p>
+    </div>
+    <div class="tabela-wrap"><table id="tab-criterios"></table></div>
+    <p class="nota" id="nota-criterios"></p>
+  </section>
+
   <section id="hiperparametros">
     <div class="cabeca">
-      <span class="rotulo">9 · Configuração</span>
+      <span class="rotulo">10 · Configuração</span>
       <h2>Hiperparâmetros de cada treino</h2>
       <p class="leitura">Na mesma ordem da tabela acima. A primeira linha é a configuração base; os valores em fucsina são os que cada treino mudou em relação a ela.</p>
     </div>
@@ -248,7 +262,7 @@ footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
 
   <section id="linha-do-tempo">
     <div class="cabeca">
-      <span class="rotulo">10 · Linha do tempo</span>
+      <span class="rotulo">11 · Linha do tempo</span>
       <h2>O que cada rodada ensinou</h2>
       <p class="leitura">Os experimentos em ordem cronológica, com o horário de início e de fim tirado de cada log e os números do teste no limiar 0,5.
         Ponto cheio: log auditado. Ponto vazio: experimento criado, aguardando o log. Ponto cinza: decisão de método.</p>
@@ -560,7 +574,31 @@ function tabela() {
   document.getElementById("tab").innerHTML = `<thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${tese}${media}${nossas}</tbody>`;
 }
 
-// ---------------------------------------------------------------- 9 hiperparâmetros
+// ---------------------------------------------------------------- 9 critérios de checkpoint
+function tabelaCriterios() {
+  const com = EXP.filter(e => e.criterios && e.criterios.length);
+  const secao = document.getElementById("criterios");
+  if (!com.length) { secao.hidden = true; return; }
+  const cab = ["Regra", "Épocas", ...M.map(k => NOME_M_LONGO[k]), "Superam as 4"];
+  const linhas = com.map(e => {
+    const topo = `<tr class="grupo"><td colspan="${cab.length}"><strong>${e.nome}</strong> · ${e.testes.length} sementes</td></tr>`;
+    const maiorF1 = Math.max(...e.criterios.map(c => c.media.F1));
+    const corpo = e.criterios.map(c => {
+      const v = (k) => `<td class="${c.media[k] <= REF[k] ? "abaixo" : ""}">${fmt(c.media[k])} ± ${fmt(c.desvio[k])}</td>`;
+      const nome = c.nome + (c.principal ? " (principal)" : "");
+      const f1 = c.media.F1 === maiorF1 ? ` class="melhor"` : "";
+      return `<tr${f1}><td>${nome}</td><td>${c.epocas.join(", ")}</td>${M.map(v).join("")}` +
+        `<td><span class="selo ${c.superam === c.sementes ? "sim" : "nao"}">${c.superam}/${c.sementes}</span></td></tr>`;
+    }).join("");
+    return topo + corpo;
+  }).join("");
+  document.getElementById("tab-criterios").innerHTML = `<thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${linhas}</tbody>`;
+  document.getElementById("nota-criterios").textContent =
+    "sem_folga: a época supera a tese nas 4 métricas da validação e tem o maior F1. folga_001: o mesmo com folga de 0,01. ap_voc: maior AP_VOC na validação. " +
+    "ultima: a última época, sem seleção. Em destaque, a regra de maior F1 de cada experimento.";
+}
+
+// ---------------------------------------------------------------- 10 hiperparâmetros
 const HIPER = [
   ["image_size", "image_size", v => fmt(v, 0)], ["target_box", "target_box", v => fmt(v, 0)],
   ["batch_size", "batch_size", v => fmt(v, 0)], ["learning_rate", "learning_rate", v => cientifico(v)],
@@ -590,7 +628,7 @@ function tabelaHiper() {
   document.getElementById("hiper-fixos").textContent = `Iguais em todos os treinos: ${DADOS.hiper_fixos}.`;
 }
 
-// ---------------------------------------------------------------- 10 linha do tempo
+// ---------------------------------------------------------------- 11 linha do tempo
 function linhaDoTempo() {
   const comLog = new Set(EXP.map(e => e.nome));
   const esc = (x) => String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -627,7 +665,7 @@ function desenhar() {
   const t = tema();
   gSuperacao(t); gPR(t); gVelas(t); gMatriz(t); gCurva(t); gCurvaPR(t); gCusto(t);
 }
-cabecalho(); tabela(); tabelaHiper(); linhaDoTempo(); preencherControles();
+cabecalho(); tabela(); tabelaCriterios(); tabelaHiper(); linhaDoTempo(); preencherControles();
 if (window.Plotly) {
   desenhar();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", desenhar);
