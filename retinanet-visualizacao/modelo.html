@@ -216,7 +216,7 @@ footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
     <div class="cabeca">
       <span class="rotulo">6 · Curva precisão × sensibilidade no teste</span>
       <h2>O que acontece ao mover o limiar</h2>
-      <p class="leitura">Curva completa, limiar de 0,05 a 0,95, gravada pelos experimentos a partir do optunaSuperaTese. O ponto marcado em cada curva é o limiar 0,5 da tese.</p>
+      <p class="leitura">Curva completa de cada semente, limiar de 0,05 a 0,95, gravada no log pelo optunaSuperaTese, pelo wandbSementesSuperaTese e pelo wandbSementesAlpha030. O ponto marcado em cada curva é o limiar 0,5 da tese.</p>
     </div>
     <div id="area-curva-pr"></div>
   </section>
@@ -344,11 +344,12 @@ function gSuperacao(t) {
     colorscale: [[0, t.neg], [0.5, t.zero], [1, t.pos]],
     colorbar: { thickness: 10, len: 0.6, tickvals: [-0.15, 0, 0.15], ticktext: ["≤ −0,15", "0", "≥ +0,15"], tickfont: { color: t.muted }, outlinewidth: 0 },
     hovertemplate: "%{y}<br>%{x}: %{text} sobre a tese<extra></extra>",
-  }], base(t, { height: altura, margin: { l: 250, r: 20, t: 8, b: 36 },
+  }], base(t, { height: altura, margin: { l: 320, r: 20, t: 8, b: 36 },
     xaxis: eixo(t, { side: "bottom", gridcolor: "rgba(0,0,0,0)" }), yaxis: eixo(t, { gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink, size: 12 } }) }), CONF);
 }
 
 // ---------------------------------------------------------------- 2 P x R
+const mediaDe = (lista, k) => lista.reduce((s, e) => s + e.resumo[k].media, 0) / lista.length;
 function gPR(t) {
   const traces = [];
   for (const f of [0.6, 0.7, 0.8, 0.9]) {
@@ -377,7 +378,9 @@ function gPR(t) {
       text: e.testes.map((_, i) => `${e.nome} · semente ${i + 1}`), hovertemplate: "%{text}<br>Sensibilidade %{x:.4f}<br>Precisão %{y:.4f}<extra></extra>",
     });
   }
-  const destaque = new Set([EXP[0].nome, "baseline", ...sementes.map(e => e.nome)]);
+  // Os experimentos "*SuperaTese" e "Alpha030" caem juntos no mesmo canto: um rótulo só, com seta, em vez de três sobrepostos.
+  const agrupados = sementes.filter(e => /SuperaTese|Alpha030/.test(e.nome));
+  const destaque = new Set([EXP[0].nome, "baseline", ...sementes.filter(e => !agrupados.includes(e)).map(e => e.nome)]);
   traces.push({
     x: EXP.map(e => e.resumo.RECALL.media), y: EXP.map(e => e.resumo.PRECISION.media),
     mode: "markers+text", text: EXP.map(e => destaque.has(e.nome) ? rotulo(e) : ""),
@@ -391,10 +394,13 @@ function gPR(t) {
   Plotly.react("g-pr", traces, base(t, {
     height: 460,
     xaxis: eixo(t, { title: { text: "Sensibilidade (Recall)" }, range: [0.15, 1.0], tickformat: ".1f" }),
-    yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.78, 1.0], tickformat: ".2f" }),
+    yaxis: eixo(t, { title: { text: "Precisão (Precision)" }, range: [0.78, 1.035], tickformat: ".2f", dtick: 0.05 }),
     shapes: [{ type: "rect", xref: "x", yref: "y", x0: REF.RECALL, x1: 1.0, y0: REF.PRECISION, y1: 1.0, fillcolor: t.fucSoft, line: { width: 0 }, layer: "below" }],
     annotations: [
       { x: 0.99, y: 0.995, xanchor: "right", yanchor: "top", showarrow: false, text: "supera precisão e sensibilidade da tese", font: { color: t.fuc, size: 11 } },
+      ...(agrupados.length ? [{ x: mediaDe(agrupados, "RECALL"), y: mediaDe(agrupados, "PRECISION"), ax: -150, ay: -62, xanchor: "center", yanchor: "bottom",
+        showarrow: true, arrowhead: 0, arrowcolor: t.ink2, arrowwidth: 1, standoff: 6, align: "center",
+        text: agrupados.map(e => e.nome).join("<br>"), font: { color: t.ink, size: 11 } }] : []),
       ...[0.6, 0.7, 0.8, 0.9].map(f => ({ x: 0.995, y: f * 0.995 / (2 * 0.995 - f), xanchor: "right", yanchor: "bottom", showarrow: false, text: `F1 ${fmt(f, 1)}`, font: { color: t.muted, size: 10 } })),
     ],
   }), CONF);
@@ -438,9 +444,9 @@ function gVelas(t) {
       });
     }
     Plotly.react(`g-vela-${k}`, traces, base(t, {
-      height: 330, margin: { l: 52, r: 12, t: 34, b: 70 },
+      height: 370, margin: { l: 52, r: 12, t: 34, b: 115 },
       title: { text: NOME_M_LONGO[k], x: 0.02, y: 0.97, font: { color: t.ink, size: 14, family: "Archivo, sans-serif" } },
-      xaxis: eixo(t, { type: "category", rangeslider: { visible: false }, gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2, size: 10.5 } }),
+      xaxis: eixo(t, { type: "category", rangeslider: { visible: false }, gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2, size: 10.5 }, tickangle: -40 }),
       yaxis: eixo(t, { tickformat: ".2f" }),
       shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: REF[k], y1: REF[k], line: { color: t.met, width: 1 } }],
       annotations: [{ xref: "paper", x: 1, y: REF[k], xanchor: "right", yanchor: "bottom", showarrow: false, text: `média da tese ${fmt(REF[k])}`, font: { color: t.met, size: 10 } }],
