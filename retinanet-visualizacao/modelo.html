@@ -384,7 +384,8 @@ function gPR(t) {
   traces.push({
     x: EXP.map(e => e.resumo.RECALL.media), y: EXP.map(e => e.resumo.PRECISION.media),
     mode: "markers+text", text: EXP.map(e => destaque.has(e.nome) ? rotulo(e) : ""),
-    textposition: EXP.map(e => e.nome === "baseline" ? "middle right" : "top left"),
+    // wandbSementes e wandbSementesFocalF1Alpha055 ficam quase no mesmo ponto: o rótulo do primeiro vai para baixo.
+    textposition: EXP.map(e => e.nome === "baseline" ? "middle right" : e.nome === "wandbSementes" ? "bottom left" : "top left"),
     textfont: { color: t.ink, size: 11 },
     marker: { color: EXP.map(e => e.supera_media ? t.fuc : t.bg), size: EXP.map(e => e.sementes ? 13 : 10),
       line: { color: t.fuc, width: 2 } },
@@ -444,7 +445,7 @@ function gVelas(t) {
       });
     }
     Plotly.react(`g-vela-${k}`, traces, base(t, {
-      height: 370, margin: { l: 52, r: 12, t: 34, b: 115 },
+      height: 420, margin: { l: 52, r: 12, t: 34, b: 165 },
       title: { text: NOME_M_LONGO[k], x: 0.02, y: 0.97, font: { color: t.ink, size: 14, family: "Archivo, sans-serif" } },
       xaxis: eixo(t, { type: "category", rangeslider: { visible: false }, gridcolor: "rgba(0,0,0,0)", tickfont: { color: t.ink2, size: 10.5 }, tickangle: -40 }),
       yaxis: eixo(t, { tickformat: ".2f" }),
