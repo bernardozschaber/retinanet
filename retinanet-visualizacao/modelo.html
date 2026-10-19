@@ -216,7 +216,7 @@ footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
     <div class="cabeca">
       <span class="rotulo">6 · Curva precisão × sensibilidade no teste</span>
       <h2>O que acontece ao mover o limiar</h2>
-      <p class="leitura">Curva completa de cada semente, limiar de 0,05 a 0,95, gravada no log pelo optunaSuperaTese, pelo wandbSementesSuperaTese e pelo wandbSementesAlpha030. O ponto marcado em cada curva é o limiar 0,5 da tese.</p>
+      <p class="leitura">Curva completa de cada semente, limiar de 0,05 a 0,95, gravada no log pelo optunaSuperaTese, pelo wandbSementesSuperaTese, pelo wandbSementesAlpha030 e pelo wandbSementesFocalF1Alpha055. O ponto marcado em cada curva é o limiar 0,5 da tese.</p>
     </div>
     <div id="area-curva-pr"></div>
   </section>
@@ -242,7 +242,7 @@ footer { font-size: 0.8rem; color: var(--muted); display: grid; gap: 4px; }
   <section id="criterios">
     <div class="cabeca">
       <span class="rotulo">9 · Escolha do checkpoint</span>
-      <h2>O mesmo treino, quatro regras de escolha da época</h2>
+      <h2>O mesmo treino, várias regras de escolha da época</h2>
       <p class="leitura">Nos experimentos que guardam vários checkpoints por semente, cada regra é medida só na validação e o resultado é lido no teste, no limiar 0,5.
         A regra marcada como principal foi declarada antes de rodar; as outras são análise. "Épocas" lista a época escolhida em cada semente.</p>
     </div>
@@ -600,7 +600,7 @@ function tabelaCriterios() {
   }).join("");
   document.getElementById("tab-criterios").innerHTML = `<thead><tr>${cab.map(c => `<th>${c}</th>`).join("")}</tr></thead><tbody>${linhas}</tbody>`;
   document.getElementById("nota-criterios").textContent =
-    "sem_folga: a época supera a tese nas 4 métricas da validação e tem o maior F1. folga_001: o mesmo com folga de 0,01. ap_voc: maior AP_VOC na validação. " +
+    "sem_folga: a época supera a tese nas 4 métricas da validação e tem o maior F1. folga_001: o mesmo com folga de 0,01. ap_voc: maior AP_VOC na validação. f1_val: maior F1 na validação, no limiar 0,5. " +
     "ultima: a última época, sem seleção. Em destaque, a regra de maior F1 de cada experimento.";
 }
 

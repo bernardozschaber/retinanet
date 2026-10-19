@@ -64,6 +64,7 @@ HIPER_MUDANCA = {
     "wandbSementes": TRIAL_12,     # trial 12, sementes 42-46
     "optunaFocalF1": TRIAL_1_FOCAL,         # trial 1 da 2a busca
     "wandbSementesFocalF1": TRIAL_1_FOCAL,  # trial 1, sementes 42-46
+    "wandbSementesFocalF1Alpha055": {**TRIAL_1_FOCAL, "focal_alpha": 0.55},  # trial 1 com alpha 0,55, sementes 47-56
 }
 HIPER_FIXOS = "tile_overlap 128 · crops_per_image 8 · score_threshold 0,5 · evaluation_iou 0,1 · RetinaNet R50-FPN v2 com pesos COCO"
 
@@ -190,6 +191,20 @@ LINHA_DO_TEMPO = [
               "precisão, uma na sensibilidade), com desvio de 0,0775. A ressalva é que a última época era um critério "
               "secundário e foi a melhor de quatro vistas no teste, então o ganho precisa ser confirmado num experimento "
               "que a declare como principal antes de rodar."},
+    {"data": "14/10/2026", "hora": "17:44–21:59", "titulo": "Alpha 0,55 e a última época declarada antes",
+     "experimentos": ["wandbSementesFocalF1Alpha055"],
+     "numeros": "P 0,8752 ± 0,0100 · R 0,8458 ± 0,0135 · F1 0,8601 ± 0,0050 · AP 0,8109 ± 0,0114 · 10 sementes, 25,5 min cada",
+     "licao": "Baixar o alpha de 0,6 para 0,55 fez o que se esperava com a precisão e não mudou o F1. Comparando o mesmo "
+              "critério do wandbSementesFocalF1 (AP_VOC na validação), a precisão subiu 0,027 (0,8726 contra 0,8459, "
+              "p = 0,003 num teste de permutação exato entre as 10 + 5 sementes) e a sensibilidade caiu 0,036 (p = 0,008). "
+              "O F1 ficou em 0,8601 contra 0,8643 (p = 0,25), e o AP caiu 0,028 (p = 0,014). A troca entre precisão e "
+              "sensibilidade foi quase de um para um, então o alpha 0,55 só move o ponto de operação na mesma curva, e a "
+              "precisão continua 0,059 abaixo da tese: 0 de 10 sementes superam as quatro métricas. A última época, agora "
+              "declarada antes de rodar, empatou com o AP_VOC (F1 0,8601 nos dois, p = 0,98 pareado nas mesmas sementes) e "
+              "ficou um pouco acima do F1 da validação (0,8573, p = 0,10), com o menor desvio dos três (0,0050). Como a "
+              "validação desta configuração é estável, escolher a época quase não importa; o ganho de 0,05 do alpha 0,30 "
+              "veio de uma validação ruidosa. A última época é o critério mais simples e não perdeu para os outros em "
+              "nenhum dos três experimentos que a mediram."},
 ]
 
 
@@ -258,7 +273,7 @@ def ler_experimento(pasta):
                 pass
     if not testes:
         return None
-    ordem = ["sem_folga", "folga_001", "ap_voc", "ultima"]
+    ordem = ["sem_folga", "folga_001", "ap_voc", "f1_val", "ultima"]
     criterios.sort(key=lambda c: ordem.index(c["nome"]) if c["nome"] in ordem else len(ordem))
     for c in criterios:
         c["epocas"] = escolhidas.get(c["nome"], [])
