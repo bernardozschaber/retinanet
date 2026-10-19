@@ -172,7 +172,7 @@ classDiagram
     FlautimExperiment <|-- RetinaExperiment
     RetinaExperiment <|-- RetinaExperimentWandb : run.py dos experimentos wandb*
     RetinaExperiment <|-- RetinaExperimentTese : run.py do optunaSuperaTese
-    RetinaExperiment <|-- RetinaExperimentCriterios : run.py do wandbSementesSuperaTese e do wandbSementesAlpha030
+    RetinaExperiment <|-- RetinaExperimentCriterios : run.py do wandbSementesSuperaTese, do wandbSementesAlpha030 e do wandbSementesFocalF1Alpha055
     RetinaDataset "1" *-- "3" RetinaTorchDataset : treino, validação, teste
     RetinaTorchDataset "*" --> "1" CacheDeImagens : compartilham
     RetinaExperiment --> RetinaModel
@@ -295,7 +295,7 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/01-resumo-escuro.png">
-  <img src="retinanet-visualizacao/imagens/01-resumo-claro.png" alt="Resumo do painel: 12 de 18 experimentos superam as quatro médias da tese">
+  <img src="retinanet-visualizacao/imagens/01-resumo-claro.png" alt="Resumo do painel: 12 de 19 experimentos superam as quatro médias da tese">
 </picture>
 
 **Folga sobre a tese.** Cada experimento contra cada uma das quatro métricas, como diferença para a média do RetinaNet da tese. É a resposta direta à pergunta do projeto: quem supera a tese, em quê e por quanto. A marca "4/4" indica quem supera as quatro ao mesmo tempo.
@@ -326,11 +326,11 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
   <img src="retinanet-visualizacao/imagens/05-matriz-de-confusao-claro.png" alt="Matriz de confusão da detecção para as cinco sementes">
 </picture>
 
-**Curva precisão × sensibilidade no teste.** A curva completa de cada semente dos três experimentos que a gravam no log (optunaSuperaTese, wandbSementesSuperaTese e wandbSementesAlpha030, 13 curvas), com o limiar indo de 0,05 a 0,95 e o ponto do limiar 0,5 marcado, ao lado dos pontos da tese. Mostra quanto de sensibilidade o modelo ganharia baixando o limiar, e onde ele deixaria de superar a tese em precisão.
+**Curva precisão × sensibilidade no teste.** A curva completa de cada semente dos quatro experimentos que a gravam no log (optunaSuperaTese, wandbSementesSuperaTese, wandbSementesAlpha030 e wandbSementesFocalF1Alpha055, 23 curvas), com o limiar indo de 0,05 a 0,95 e o ponto do limiar 0,5 marcado, ao lado dos pontos da tese. Mostra quanto de sensibilidade o modelo ganharia baixando o limiar, e onde ele deixaria de superar a tese em precisão.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="retinanet-visualizacao/imagens/07-curva-pr-teste-escuro.png">
-  <img src="retinanet-visualizacao/imagens/07-curva-pr-teste-claro.png" alt="Curva precisão × sensibilidade no teste para as 13 sementes dos experimentos SuperaTese e Alpha030">
+  <img src="retinanet-visualizacao/imagens/07-curva-pr-teste-claro.png" alt="Curva precisão × sensibilidade no teste para as 23 sementes dos experimentos SuperaTese, Alpha030 e FocalF1Alpha055">
 </picture>
 
 **Curva de aprendizado.** A métrica da validação época a época, com a faixa entre a melhor e a pior semente. Mostra quando o treino estabiliza e quanto as sementes divergem.
@@ -340,7 +340,7 @@ As cores seguem a coloração de Ziehl-Neelsen, o método padrão do diagnóstic
   <img src="retinanet-visualizacao/imagens/06-curva-de-aprendizado-claro.png" alt="Curva de aprendizado na validação">
 </picture>
 
-**Escolha do checkpoint.** Uma tabela com as quatro regras de escolha da época que os experimentos `wandbSementesSuperaTese` e `wandbSementesAlpha030` aplicam ao mesmo treino, com a época escolhida em cada semente e quantas sementes superam a tese. É a base da seção de resultados sobre o checkpoint.
+**Escolha do checkpoint.** Uma tabela com as regras de escolha da época que os experimentos `wandbSementesSuperaTese`, `wandbSementesAlpha030` (quatro regras) e `wandbSementesFocalF1Alpha055` (três) aplicam ao mesmo treino, com a época escolhida em cada semente e quantas sementes superam a tese. É a base da seção de resultados sobre o checkpoint.
 
 O painel traz ainda o custo em tempo de treino, a tabela completa, os hiperparâmetros de cada treino e a linha do tempo que está no fim deste README.
 
@@ -364,8 +364,9 @@ No teste, limiar 0,5. As linhas com ± são médias de várias sementes, que é 
 | **wandbSementesAlpha030** (5 sementes) | **0,9603 ± 0,0120** | 0,5524 ± 0,0348 | 0,7007 ± 0,0266 | 0,5423 ± 0,0334 | **sim, nas 5 sementes** |
 | wandbSementes (5 sementes) | 0,8787 ± 0,0288 | 0,8352 ± 0,0388 | 0,8553 ± 0,0091 | 0,8066 ± 0,0323 | não (precisão) |
 | **wandbSementesFocalF1** (5 sementes) | 0,8459 ± 0,0172 | **0,8844 ± 0,0256** | **0,8643 ± 0,0037** | **0,8414 ± 0,0229** | não (precisão) |
+| wandbSementesFocalF1Alpha055 (10 sementes) | 0,8752 ± 0,0100 | 0,8458 ± 0,0135 | 0,8601 ± 0,0050 | 0,8109 ± 0,0114 | não (precisão) |
 
-Os dois experimentos novos guardam quatro checkpoints por semente, um por regra de escolha da época. As regras são medidas só na validação e o resultado é lido no teste. Aqui estão os quatro, com a época escolhida em cada semente e o número de sementes que superam as quatro médias da tese:
+Os três experimentos mais recentes guardam um checkpoint por regra de escolha da época em cada semente: quatro regras nos dois de 12/10 e três no de 14/10. As regras são medidas só na validação e o resultado é lido no teste. Aqui estão todas, com a época escolhida em cada semente e o número de sementes que superam as quatro médias da tese:
 
 | Experimento | Regra | Épocas escolhidas | Precisão | Sensibilidade | F-measure | AP | Sementes que superam |
 |---|---|---|---|---|---|---|---|
@@ -377,10 +378,13 @@ Os dois experimentos novos guardam quatro checkpoints por semente, um por regra 
 | | folga_001 | 17, 13, 16, 17, 12 | 0,9599 ± 0,0108 | 0,5322 ± 0,0298 | 0,6843 ± 0,0223 | 0,5230 ± 0,0282 | 5/5 |
 | | ap_voc | 12, 28, 12, 16, 16 | 0,9466 ± 0,0215 | 0,5902 ± 0,1046 | 0,7214 ± 0,0775 | 0,5783 ± 0,1000 | 2/5 |
 | | **ultima** | 30, 30, 30, 30, 30 | 0,9496 ± 0,0051 | 0,6251 ± 0,0205 | **0,7537 ± 0,0138** | 0,6137 ± 0,0185 | **5/5** |
+| wandbSementesFocalF1Alpha055 (alpha 0,55) | **ultima (principal)** | 30 nas 10 sementes | 0,8752 ± 0,0100 | 0,8458 ± 0,0135 | **0,8601 ± 0,0050** | 0,8109 ± 0,0114 | 0/10 |
+| | ap_voc | 23, 12, 25, 22, 22, 14, 28, 27, 15, 25 | 0,8726 ± 0,0105 | 0,8484 ± 0,0182 | 0,8601 ± 0,0070 | 0,8132 ± 0,0147 | 0/10 |
+| | f1_val | 11, 25, 19, 27, 21, 9, 23, 26, 27, 19 | 0,8729 ± 0,0112 | 0,8425 ± 0,0167 | 0,8573 ± 0,0055 | 0,8064 ± 0,0132 | 0/10 |
 
 Os achados principais:
 
-- **Superar a tese nas quatro métricas ao mesmo tempo é robusto.** Com o critério principal, as 13 sementes dos três experimentos `*SuperaTese` e `Alpha030` superam as quatro médias, com folga de +0,027 a +0,029 na precisão (médias), a métrica que sempre foi o limite. Dos 18 experimentos rodados até 12/10/2026, 12 superam as quatro médias.
+- **Superar a tese nas quatro métricas ao mesmo tempo é robusto.** Com o critério principal, as 13 sementes dos três experimentos `*SuperaTese` e `Alpha030` superam as quatro médias, com folga de +0,027 a +0,029 na precisão (médias), a métrica que sempre foi o limite. Dos 19 experimentos rodados até 14/10/2026, 12 superam as quatro médias.
 - **Existe uma troca entre precisão e F1, e o alpha da perda focal escolhe o ponto.** Com alpha 0,25 o modelo marca pouco e quase sempre certo, e supera a tese em tudo; com alpha 0,5 a 0,6 o F1 sobe para ~0,86, mas a precisão cai abaixo da tese. O gamma pesa sete vezes menos que o alpha.
 - **O maior F1 do projeto é estável e estatisticamente confirmado.** O wandbSementesFocalF1 tem F1 0,8643 ± 0,0037, acima do wandbSementes com p = 0,032 num teste de permutação exato entre as 5 + 5 sementes.
 - **Uma semente só engana.** Na primeira repetição com sementes, o resultado de uma execução isolada (F1 0,8634) era o melhor de cinco, e a média real foi 0,855. Diferenças de AP abaixo de ~0,03 entre execuções de uma semente são ruído.
@@ -388,10 +392,14 @@ Os achados principais:
 - **O problema é escolher a época pelo máximo de uma validação ruidosa.** A validação tem 20 lâminas, e a sensibilidade dela chega a ir de 0,14 para 0,71 em épocas vizinhas do mesmo treino. Escolher o máximo premia épocas de sorte: a época escolhida variou de 7 a 26 entre as sementes. A última época, sem seleção, deu o maior F1 nos dois experimentos e superou a tese em 5 de 5 sementes, porque no fim do cosseno a taxa de aprendizado é baixa e os checkpoints se estabilizam.
 - **O alpha 0,30 só aparece quando se tira a seleção de época.** Com o critério principal, alpha 0,30 e 0,25 empatam (F1 +0,010, p = 0,59). Na última época, o alpha 0,30 chega a F1 0,7537 ± 0,0138 contra 0,7036 do alpha 0,25 (+0,050, p = 0,016) e a sensibilidade sobe 0,069 (p = 0,024). A precisão cai 0,013, para 0,9496, e continua +0,016 acima da tese nas cinco sementes. É o maior F1 entre as configurações que superam as quatro métricas em várias sementes, e chega perto dos 0,7748 do altoLearningRate, que tem uma semente só.
 - **Escolher a época pelo AP_VOC é arriscado com alpha 0,30.** O F1 médio é 0,7214, mas só 2 de 5 sementes superam a tese: duas perdem na precisão (0,926 e 0,927) e uma na sensibilidade, com desvio de 0,0775.
+- **Alpha 0,55 devolve precisão, mas não sobe o F1.** Com o mesmo critério do wandbSementesFocalF1 (AP_VOC na validação), o alpha 0,55 tem precisão 0,027 maior (p = 0,003 num teste de permutação exato entre as 10 + 5 sementes) e sensibilidade 0,036 menor (p = 0,008). O F1 fica igual (0,8601 contra 0,8643, p = 0,25) e o AP cai 0,028 (p = 0,014). O ponto de operação anda na mesma curva, e a precisão (0,875) continua abaixo da tese em 10 de 10 sementes.
+- **A última época, declarada antes de rodar, não perde para a seleção.** No wandbSementesFocalF1Alpha055 ela empatou com o AP_VOC (F1 0,8601 nos dois, p = 0,98 pareado em 10 sementes) e ficou um pouco acima do F1 da validação (0,8573, p = 0,10), com o menor desvio dos três. A validação desta configuração é estável, então a escolha da época quase não importa aqui; o ganho de +0,050 da última época no alpha 0,30 veio de uma validação ruidosa e ainda não foi repetido.
 
-Uma ressalva sobre o achado da última época: ela era um critério secundário, e foi a melhor das quatro regras vistas no teste. Os p-valores não corrigem essa escolha, e com 5 sementes pareadas o menor p possível é 0,0625 (a última época foi melhor em 5 de 5 sementes no alpha 0,30, com p = 0,0625 no teste pareado). Por isso o resultado é uma pista forte, e não uma conclusão.
+Uma ressalva sobre o achado da última época no alpha 0,30: ela era um critério secundário, e foi a melhor das quatro regras vistas no teste. Os p-valores não corrigem essa escolha, e com 5 sementes pareadas o menor p possível é 0,0625 (a última época foi melhor em 5 de 5 sementes no alpha 0,30, com p = 0,0625 no teste pareado). Por isso o resultado é uma pista forte, e não uma conclusão.
 
-**Próximo passo sugerido:** repetir o alpha 0,30 (e talvez 0,35, que também passou a tese na validação da busca) com a última época declarada como critério principal antes de rodar, e com sementes novas (47 a 51). Se o F1 de ~0,75 se repetir com a precisão acima de 0,934, a configuração vira a melhor das que superam a tese nas quatro métricas.
+O wandbSementesFocalF1Alpha055 declarou a última época como principal antes de rodar, mas numa configuração de validação estável, onde ela empatou com os outros critérios. Isso mostra que ela não piora o resultado, mas não confirma o ganho do alpha 0,30.
+
+**Próximo passo sugerido:** repetir o alpha 0,30 (e talvez 0,35, que também passou a tese na validação da busca) com a última época declarada como critério principal antes de rodar, e com sementes novas (57 a 61, já que as 47 a 56 foram usadas no wandbSementesFocalF1Alpha055). Se o F1 de ~0,75 se repetir com a precisão acima de 0,934, a configuração vira a melhor das que superam a tese nas quatro métricas.
 
 
 ---
@@ -454,6 +462,11 @@ O que cada rodada ensinou, em ordem cronológica. Os horários de início e fim 
   `wandbSementesAlpha030` \
   `P 0,9603 ± 0,0120 · R 0,5524 ± 0,0348 · F1 0,7007 ± 0,0266 · AP 0,5423 ± 0,0334 · 5 de 5 sementes superam as 4` \
   **O que ensinou:** Com o critério principal, o alpha 0,30 não se distingue do 0,25: +0,010 de F1 (p = 0,59 num teste de permutação exato entre as 5 + 5 sementes) e a mesma precisão, 0,9603 contra 0,9605. O efeito do alpha aparece quando se tira a seleção de época. Na última época o alpha 0,30 chega a F1 0,7537 ± 0,0138, contra 0,7036 do alpha 0,25 (+0,050, p = 0,016), com sensibilidade 0,6251 (+0,069, p = 0,024) e precisão 0,9496, ainda +0,016 acima da tese nas cinco sementes. É o maior F1 entre as configurações que superam as quatro métricas em várias sementes, e o desvio é a metade do critério principal. Escolher a época pelo AP_VOC é arriscado com alpha 0,30: o F1 médio é 0,7214, mas só 2 de 5 sementes superam a tese (duas perdem na precisão, uma na sensibilidade), com desvio de 0,0775. A ressalva é que a última época era um critério secundário e foi a melhor de quatro vistas no teste, então o ganho precisa ser confirmado num experimento que a declare como principal antes de rodar.
+
+- **14/10/2026 (17:44–21:59) · Alpha 0,55 e a última época declarada antes** · _log auditado_ \
+  `wandbSementesFocalF1Alpha055` \
+  `P 0,8752 ± 0,0100 · R 0,8458 ± 0,0135 · F1 0,8601 ± 0,0050 · AP 0,8109 ± 0,0114 · 10 sementes, 25,5 min cada` \
+  **O que ensinou:** Baixar o alpha de 0,6 para 0,55 fez o que se esperava com a precisão e não mudou o F1. Comparando o mesmo critério do wandbSementesFocalF1 (AP_VOC na validação), a precisão subiu 0,027 (0,8726 contra 0,8459, p = 0,003 num teste de permutação exato entre as 10 + 5 sementes) e a sensibilidade caiu 0,036 (p = 0,008). O F1 ficou em 0,8601 contra 0,8643 (p = 0,25), e o AP caiu 0,028 (p = 0,014). A troca entre precisão e sensibilidade foi quase de um para um, então o alpha 0,55 só move o ponto de operação na mesma curva, e a precisão continua 0,059 abaixo da tese: 0 de 10 sementes superam as quatro métricas. A última época, agora declarada antes de rodar, empatou com o AP_VOC (F1 0,8601 nos dois, p = 0,98 pareado nas mesmas sementes) e ficou um pouco acima do F1 da validação (0,8573, p = 0,10), com o menor desvio dos três (0,0050). Como a validação desta configuração é estável, escolher a época quase não importa; o ganho de 0,05 do alpha 0,30 veio de uma validação ruidosa. A última época é o critério mais simples e não perdeu para os outros em nenhum dos três experimentos que a mediram.
 <!-- linha-do-tempo:fim -->
 
 ---
