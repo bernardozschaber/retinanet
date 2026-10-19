@@ -11,6 +11,7 @@ painel mantem a propria cor de fundo, que da contraste aos graficos.
 
 Precisa do Playwright com Chromium (fora da biblioteca padrao):
     pip install playwright && playwright install chromium
+    sudo playwright install-deps chromium      # no Linux, se faltar libnss3 e afins
     python3 capturar_imagens.py
 
 Para usar um Chromium ja instalado, passe o caminho em RETINA_CHROMIUM.
@@ -46,13 +47,17 @@ def main():
     erros = []
     with sync_playwright() as p:
         executavel = os.getenv("RETINA_CHROMIUM")
-        navegador = p.chromium.launch(executable_path=executavel) if executavel else p.chromium.launch()
+        # channel="chromium" usa o Chromium completo; o padrao (headless shell) espaca mal o texto dos graficos.
+        navegador = p.chromium.launch(executable_path=executavel) if executavel else p.chromium.launch(channel="chromium")
         for sufixo, esquema in TEMAS.items():
-            pagina = navegador.new_page(viewport={"width": 1280, "height": 900}, device_scale_factor=1.5, color_scheme=esquema)
+            pagina = navegador.new_page(viewport={"width": 1280, "height": 900}, device_scale_factor=2, color_scheme=esquema)
             pagina.on("pageerror", lambda e: erros.append(str(e)))
             pagina.goto(PAINEL.as_uri(), wait_until="networkidle", timeout=90000)
             # Plotly desenha depois do carregamento; espera todos os graficos.
             pagina.wait_for_function("window.Plotly && document.querySelectorAll('.js-plotly-plot').length >= 9", timeout=60000)
+            # O Plotly mede o texto ao desenhar; se as fontes do Google chegam depois, os rotulos
+            # ficam com o espacamento da fonte de reserva. Redesenha com as fontes ja carregadas.
+            pagina.evaluate("document.fonts.ready.then(() => desenhar())")
             pagina.add_style_tag(content=SEM_FUNDO)
             pagina.wait_for_timeout(1500)
             for seletor, nome in SECOES:
